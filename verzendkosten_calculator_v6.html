@@ -1,0 +1,2214 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Verzendkosten Calculator – Easy Noise Control</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   CSS CUSTOM PROPERTIES & RESET
+   ============================================================ */
+:root {
+  --bg: #f4f3ef;
+  --bg2: #eceae4;
+  --card: #ffffff;
+  --border: #e0ddd6;
+  --border-focus: #c84b2f;
+  --text: #1a1916;
+  --muted: #7a7870;
+  --muted2: #a39f96;
+  --accent: #c84b2f;
+  --accent-hover: #b03d24;
+  --accent-light: #fdf0ed;
+  --accent-border: #f5c4b8;
+  --green: #2e7d4f;
+  --green-light: #edf7f2;
+  --green-border: #b8dfc8;
+  --blue: #2f5fc8;
+  --blue-light: #eef3ff;
+  --blue-border: #ced9ff;
+  --orange: #d97706;
+  --orange-light: #fffbeb;
+  --orange-border: #fde68a;
+  --shadow-sm: 0 1px 4px rgba(0,0,0,0.06);
+  --shadow: 0 2px 12px rgba(0,0,0,0.08);
+  --shadow-lg: 0 4px 24px rgba(0,0,0,0.11);
+  --radius: 12px;
+  --radius-sm: 8px;
+  --radius-xs: 6px;
+  --transition: 0.15s ease;
+
+  /* Carrier kleuren voor visualisatie */
+  --color-klg: #2f5fc8;
+  --color-steenbergen: #2e7d4f;
+  --color-vanwijk: #c84b2f;
+  --color-kuijf: #7c3aed;
+  --color-na: #c0bdb5;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  padding: 32px 16px 64px;
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+/* ============================================================
+   LAYOUT
+   ============================================================ */
+.container { max-width: 980px; margin: 0 auto; }
+
+/* ============================================================
+   HEADER
+   ============================================================ */
+header { margin-bottom: 28px; }
+.logo-row { display: flex; align-items: center; gap: 14px; margin-bottom: 8px; }
+.logo-icon {
+  width: 44px; height: 44px; background: var(--accent); border-radius: 11px;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(200,75,47,0.3);
+}
+.logo-icon svg { fill: white; }
+h1 { font-size: 22px; font-weight: 600; letter-spacing: -0.3px; }
+.subtitle { font-size: 13px; color: var(--muted); line-height: 1.6; }
+
+/* ============================================================
+   CARDS
+   ============================================================ */
+.card {
+  background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 28px; box-shadow: var(--shadow); margin-bottom: 20px;
+}
+.card-title {
+  font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;
+  color: var(--muted); margin-bottom: 20px; display: flex; align-items: center; gap: 8px;
+}
+.card-title-icon { opacity: 0.5; }
+
+/* ============================================================
+   FORM
+   ============================================================ */
+.form-grid {
+  display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px;
+}
+.field { display: flex; flex-direction: column; gap: 6px; position: relative; }
+.field.full { grid-column: 1 / -1; }
+.field.third { grid-column: span 1; }
+
+@media (max-width: 700px) {
+  .form-grid { grid-template-columns: 1fr; }
+  .field.full { grid-column: 1; }
+}
+
+label { font-size: 13px; font-weight: 500; color: var(--muted); }
+input, select, textarea {
+  font-family: 'DM Sans', sans-serif; font-size: 15px; padding: 10px 14px;
+  border: 1.5px solid var(--border); border-radius: var(--radius-sm);
+  background: var(--bg); color: var(--text); outline: none;
+  transition: border-color var(--transition), background var(--transition); width: 100%;
+  -webkit-appearance: none; appearance: none;
+}
+textarea { min-height: 72px; resize: vertical; }
+input:focus, select:focus, textarea:focus {
+  border-color: var(--border-focus); background: #fff;
+}
+input:invalid:not(:placeholder-shown) { border-color: var(--accent); }
+
+.select-wrap { position: relative; }
+.select-wrap::after {
+  content: '▾'; position: absolute; right: 13px; top: 50%; transform: translateY(-50%);
+  pointer-events: none; color: var(--muted); font-size: 11px;
+}
+
+.hint { font-size: 12px; color: var(--muted); font-family: 'DM Mono', monospace; line-height: 1.4; }
+.microcopy { font-size: 12px; color: var(--muted2); line-height: 1.5; }
+
+/* ============================================================
+   ADRES AUTOCOMPLETE DROPDOWN
+   ============================================================ */
+.address-wrapper { position: relative; }
+.address-suggestions {
+  position: absolute; top: calc(100% + 4px); left: 0; right: 0;
+  background: var(--card); border: 1.5px solid var(--border-focus); border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-lg); z-index: 100; overflow: hidden; display: none;
+}
+.address-suggestions.visible { display: block; }
+.suggestion-item {
+  padding: 10px 14px; cursor: pointer; font-size: 14px; line-height: 1.4;
+  border-bottom: 1px solid var(--border); transition: background var(--transition);
+  display: flex; gap: 10px; align-items: flex-start;
+}
+.suggestion-item:last-child { border-bottom: none; }
+.suggestion-item:hover, .suggestion-item.active { background: var(--accent-light); }
+.suggestion-item .sug-icon { color: var(--muted2); font-size: 13px; margin-top: 1px; flex-shrink: 0; }
+.suggestion-item .sug-main { font-weight: 500; color: var(--text); }
+.suggestion-item .sug-sub { font-size: 12px; color: var(--muted); }
+.suggestion-mock-notice {
+  padding: 8px 14px; font-size: 11px; color: var(--muted2); background: var(--bg);
+  border-top: 1px solid var(--border); font-style: italic;
+}
+
+/* ============================================================
+   DIESEL PERIODE SELECTOR
+   ============================================================ */
+.period-selector-card {
+  background: var(--orange-light); border: 1px solid var(--orange-border); border-radius: var(--radius);
+  padding: 20px 24px; margin-bottom: 20px;
+}
+.period-selector-head {
+  display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap;
+}
+.period-selector-title { font-size: 13px; font-weight: 600; color: var(--orange); margin-bottom: 4px; }
+.period-selector-sub { font-size: 12px; color: #92640a; line-height: 1.5; max-width: 480px; }
+.period-controls { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-top: 12px; }
+.period-select-wrap { position: relative; }
+.period-select-wrap::after {
+  content: '▾'; position: absolute; right: 11px; top: 50%; transform: translateY(-50%);
+  pointer-events: none; color: var(--orange); font-size: 11px;
+}
+#period-select {
+  font-size: 14px; padding: 8px 32px 8px 12px; border: 1.5px solid var(--orange-border);
+  background: #fff; border-radius: var(--radius-xs); color: var(--text); font-weight: 500;
+  cursor: pointer; min-width: 140px;
+}
+#period-select:focus { border-color: var(--orange); outline: none; }
+.trend-badge {
+  display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 600;
+  padding: 5px 10px; border-radius: 20px; white-space: nowrap;
+}
+.trend-up { background: #fee2e2; color: #c84b2f; }
+.trend-same { background: var(--bg); color: var(--muted); }
+.trend-down { background: var(--green-light); color: var(--green); }
+
+/* ============================================================
+   BUTTON
+   ============================================================ */
+.divider { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
+.btn {
+  width: 100%; padding: 14px; background: var(--accent); color: white; border: none;
+  border-radius: var(--radius-sm); font-family: 'DM Sans', sans-serif; font-size: 15px;
+  font-weight: 600; cursor: pointer; transition: background var(--transition), transform 0.1s;
+  letter-spacing: -0.1px;
+}
+.btn:hover { background: var(--accent-hover); }
+.btn:active { transform: scale(0.99); }
+
+/* ============================================================
+   ERROR
+   ============================================================ */
+.error-msg {
+  display: none; background: #fff5f5; border: 1px solid var(--accent-border); border-radius: var(--radius-sm);
+  padding: 14px 18px; font-size: 14px; color: var(--accent); margin-bottom: 20px; line-height: 1.5;
+}
+
+/* ============================================================
+   RESULT SECTION
+   ============================================================ */
+#result { display: none; }
+
+.result-badge {
+  display: inline-flex; align-items: center; gap: 6px; background: var(--green-light);
+  color: var(--green); border: 1px solid var(--green-border); border-radius: 20px;
+  padding: 4px 12px; font-size: 11px; font-weight: 600; margin-bottom: 16px;
+  text-transform: uppercase; letter-spacing: 0.8px;
+}
+
+.result-top-row { display: flex; align-items: flex-end; gap: 20px; flex-wrap: wrap; margin-bottom: 6px; }
+.result-price {
+  font-size: 48px; font-weight: 300; letter-spacing: -2.5px; color: var(--text); line-height: 1;
+}
+.result-price .currency {
+  font-size: 22px; font-weight: 500; letter-spacing: 0; vertical-align: super;
+  margin-right: 2px; line-height: 1;
+}
+.result-price-sub { font-size: 13px; color: var(--muted); line-height: 1.4; margin-bottom: 8px; }
+
+.result-info-grid {
+  display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-bottom: 20px;
+}
+@media (max-width: 700px) { .result-info-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 420px) { .result-info-grid { grid-column: 1; } }
+
+.info-box {
+  background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-sm);
+  padding: 11px 13px;
+}
+.info-box-label {
+  font-size: 10px; color: var(--muted); font-weight: 600; text-transform: uppercase;
+  letter-spacing: 0.7px; margin-bottom: 4px;
+}
+.info-box-value { font-size: 14px; font-weight: 600; font-family: 'DM Mono', monospace; }
+
+.note {
+  background: var(--accent-light); border: 1px solid var(--accent-border); border-radius: var(--radius-sm);
+  padding: 12px 16px; font-size: 13px; color: #8b3521; line-height: 1.55; margin-bottom: 12px;
+}
+.info-note {
+  background: var(--blue-light); border: 1px solid var(--blue-border); border-radius: var(--radius-sm);
+  padding: 12px 16px; font-size: 13px; color: #28437d; line-height: 1.55;
+}
+
+/* ============================================================
+   QUOTE CARDS
+   ============================================================ */
+.quote-list { display: grid; gap: 12px; margin-top: 20px; }
+
+.quote {
+  border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 16px 18px;
+  background: #fff; transition: box-shadow var(--transition);
+}
+.quote:hover { box-shadow: var(--shadow-sm); }
+.quote.top { border-color: var(--green-border); background: #fbfffc; }
+.quote.unavailable { opacity: 0.6; }
+
+.quote-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 10px; }
+.quote-carrier-row { display: flex; align-items: center; gap: 10px; }
+.carrier-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+.quote-carrier-name { font-size: 15px; font-weight: 600; }
+.quote-badge { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.7px; padding: 2px 8px; border-radius: 20px; }
+.badge-best { background: var(--green-light); color: var(--green); border: 1px solid var(--green-border); }
+.badge-rank { background: var(--bg); color: var(--muted); border: 1px solid var(--border); }
+
+.quote-final-price { font-size: 22px; font-weight: 600; white-space: nowrap; }
+.quote-final-price.best { color: var(--green); }
+
+.quote-breakdown {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 10px;
+}
+@media (max-width: 600px) { .quote-breakdown { grid-template-columns: 1fr 1fr; } }
+
+.breakdown-item { }
+.breakdown-label { font-size: 10px; color: var(--muted2); font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 1px; }
+.breakdown-value { font-size: 13px; font-weight: 500; font-family: 'DM Mono', monospace; }
+.breakdown-value.surcharge { color: var(--orange); }
+
+.quote-meta-row {
+  display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; align-items: center;
+}
+.pill {
+  display: inline-block; background: var(--bg); border: 1px solid var(--border); border-radius: 20px;
+  padding: 3px 9px; font-size: 11px; color: var(--muted);
+}
+.pill.warn { background: var(--orange-light); border-color: var(--orange-border); color: #92640a; }
+
+/* Business recommendation badges */
+.badge-recommended { background: #f0fdf4; color: #166534; border: 1px solid #86efac; }
+.badge-onrequest    { background: #fafafa; color: var(--muted); border: 1px solid var(--border); }
+.badge-manual       { background: var(--orange-light); color: #92640a; border: 1px solid var(--orange-border); }
+.badge-suppressed   { background: #fafafa; color: var(--muted); border: 1px dashed var(--border); }
+
+/* Kooiaap banner */
+.kooiaap-banner {
+  background: #fff7ed; border: 1.5px solid #fdba74; border-radius: var(--radius-sm);
+  padding: 10px 14px; font-size: 13px; color: #9a3412; font-weight: 500;
+  margin-bottom: 12px; display: flex; align-items: center; gap: 8px;
+}
+
+/* Aanbevolen vs goedkoopst split */
+.result-dual-badge { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+.result-badge-recommended {
+  display: inline-flex; align-items: center; gap: 6px; background: #f0fdf4;
+  color: #166534; border: 1px solid #86efac; border-radius: 20px;
+  padding: 4px 12px; font-size: 11px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.8px;
+}
+.result-badge-cheapest {
+  display: inline-flex; align-items: center; gap: 6px; background: var(--blue-light);
+  color: var(--blue); border: 1px solid var(--blue-border); border-radius: 20px;
+  padding: 4px 12px; font-size: 11px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.8px;
+}
+
+.fallback-period-note {
+  font-size: 11px; color: var(--orange); background: var(--orange-light);
+  border: 1px solid var(--orange-border); border-radius: var(--radius-xs);
+  padding: 4px 9px; display: inline-block; margin-top: 6px;
+}
+
+/* ============================================================
+   VISUALISATIE SECTIE
+   ============================================================ */
+#viz-section { display: none; margin-bottom: 20px; }
+.viz-controls { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 16px; }
+.viz-legend { display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 4px; }
+.legend-item { display: flex; align-items: center; gap: 6px; font-size: 12px; }
+.legend-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+#viz-canvas {
+  width: 100%; border-radius: var(--radius-sm); background: var(--bg);
+  border: 1px solid var(--border); display: block; cursor: crosshair;
+}
+.viz-subtitle { font-size: 12px; color: var(--muted); margin-top: 8px; line-height: 1.4; }
+
+/* ============================================================
+   HOE REKENT DEZE TOOL (uitklapbaar)
+   ============================================================ */
+.how-section {
+  border: 1px solid var(--border); border-radius: var(--radius); background: var(--card);
+  margin-bottom: 20px; overflow: hidden;
+}
+.how-toggle {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 18px 24px; cursor: pointer; user-select: none;
+  background: none; border: none; width: 100%; text-align: left; font-family: inherit;
+  transition: background var(--transition);
+}
+.how-toggle:hover { background: var(--bg); }
+.how-toggle-title { font-size: 14px; font-weight: 600; color: var(--text); }
+.how-toggle-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+.how-chevron {
+  font-size: 12px; color: var(--muted); transform: rotate(0deg);
+  transition: transform 0.2s ease; flex-shrink: 0; margin-left: 12px;
+}
+.how-chevron.open { transform: rotate(180deg); }
+.how-content { display: none; padding: 0 24px 24px; }
+.how-content.visible { display: block; }
+
+.carrier-info-grid { display: grid; gap: 16px; }
+.carrier-info-card {
+  background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-sm);
+  padding: 16px;
+}
+.carrier-info-name {
+  font-size: 14px; font-weight: 600; margin-bottom: 10px;
+  display: flex; align-items: center; gap: 8px;
+}
+.carrier-info-table { width: 100%; font-size: 13px; border-collapse: collapse; }
+.carrier-info-table td { padding: 5px 8px 5px 0; vertical-align: top; }
+.carrier-info-table td:first-child { color: var(--muted); width: 160px; white-space: nowrap; font-weight: 500; }
+.carrier-info-table td:last-child { color: var(--text); }
+
+/* ============================================================
+   FOOTER
+   ============================================================ */
+footer {
+  text-align: center; font-size: 12px; color: var(--muted); margin-top: 20px; line-height: 1.7;
+}
+footer a { color: var(--muted); text-decoration: underline; }
+
+/* ============================================================
+   NIET-BESCHIKBARE CARRIER CARDS
+   ============================================================ */
+.quote.unavailable {
+  opacity: 0.55;
+  border-style: dashed;
+  background: var(--bg);
+}
+.quote-unavailable-reason {
+  font-size: 12px; color: var(--muted); margin-top: 8px; font-style: italic;
+}
+
+/* ============================================================
+   UTILITY
+   ============================================================ */
+.mt8 { margin-top: 8px; }
+.mt12 { margin-top: 12px; }
+.mt16 { margin-top: 16px; }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <!-- HEADER -->
+  <header>
+    <div class="logo-row">
+      <div class="logo-icon">
+        <svg width="22" height="22" viewBox="0 0 24 24"><path d="M20 8h-3V4H3c-1.1 0-2 .9-2 2v11h2c0 1.66 1.34 3 3 3s3-1.34 3-3h6c0 1.66 1.34 3 3 3s3-1.34 3-3h2v-5l-3-4zM6 18.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm13.5-9l1.96 2.5H17V9.5h2.5zm-1.5 9c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/></svg>
+      </div>
+      <div>
+        <h1>Verzendkosten Calculator</h1>
+        <p class="subtitle">Easy Noise Control B.V. · Vertrek: NL-3454 MZ De Meern · Vergelijkt kostprijs inclusief dieseltoeslag per vervoerder</p>
+      </div>
+    </div>
+  </header>
+
+  <!-- DIESEL PERIODE SELECTOR -->
+  <div class="period-selector-card">
+    <div class="period-selector-head">
+      <div>
+        <div class="period-selector-title">⛽ Dieseltoeslag periode</div>
+        <div class="period-selector-sub">De dieseltoeslag varieert sterk per maand. Kies hieronder de gewenste periode om de eindprijzen correct te berekenen. Gebruik dit ook om historische scenario's te vergelijken.</div>
+      </div>
+    </div>
+    <div class="period-controls">
+      <div class="period-select-wrap">
+        <select id="period-select" onchange="onPeriodChange()">
+          <!-- Dynamisch gevuld vanuit FUEL_SURCHARGE_HISTORY -->
+        </select>
+      </div>
+      <div class="trend-badge" id="trend-badge">—</div>
+      <span style="font-size:12px;color:#92640a;" id="period-label-note"></span>
+    </div>
+  </div>
+
+  <!-- ZENDING GEGEVENS FORMULIER -->
+  <div class="card">
+    <div class="card-title">
+      <span class="card-title-icon">📦</span>
+      Zending gegevens
+    </div>
+
+    <div class="form-grid">
+      <!-- Adres met autocomplete -->
+      <div class="field full">
+        <label for="address">Volledig afleveradres</label>
+        <div class="address-wrapper">
+          <textarea id="address" placeholder="Bijv. Musterstraße 12, 80331 München" rows="2"
+            oninput="onAddressInput(this.value)"
+            onkeydown="onAddressKeydown(event)"
+            onblur="hideSuggestionsDelayed()"></textarea>
+          <div class="address-suggestions" id="address-suggestions" role="listbox"></div>
+        </div>
+        <div class="microcopy">Typ een adres voor suggesties. De berekening gebruikt <strong>land</strong> en <strong>postcode</strong> hieronder.</div>
+      </div>
+
+      <div class="field">
+        <label for="country">Land van bestemming</label>
+        <div class="select-wrap">
+          <select id="country" onchange="onCountryChange()">
+            <option value="">Kies een land…</option>
+            <optgroup label="Volledig geprijsd">
+              <option value="NL">🇳🇱 Nederland</option>
+              <option value="BE">🇧🇪 België</option>
+              <option value="LU">🇱🇺 Luxemburg</option>
+              <option value="DE">🇩🇪 Duitsland</option>
+              <option value="AT">🇦🇹 Oostenrijk</option>
+              <option value="FR">🇫🇷 Frankrijk</option>
+            </optgroup>
+            <optgroup label="Via KLG op aanvraag">
+              <option value="CH">🇨🇭 Zwitserland</option>
+              <option value="DK">🇩🇰 Denemarken</option>
+              <option value="SE">🇸🇪 Zweden</option>
+              <option value="NO">🇳🇴 Noorwegen</option>
+              <option value="PL">🇵🇱 Polen</option>
+              <option value="CZ">🇨🇿 Tsjechië</option>
+              <option value="SK">🇸🇰 Slowakije</option>
+              <option value="HU">🇭🇺 Hongarije</option>
+              <option value="SI">🇸🇮 Slovenië</option>
+              <option value="HR">🇭🇷 Kroatië</option>
+              <option value="RO">🇷🇴 Roemenië</option>
+              <option value="ES">🇪🇸 Spanje</option>
+              <option value="PT">🇵🇹 Portugal</option>
+              <option value="IT">🇮🇹 Italië</option>
+            </optgroup>
+          </select>
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="postcode">Postcode bestemming</label>
+        <input type="text" id="postcode" placeholder="Bijv. 80331 of 3454 MZ" oninput="sanitizePostcode()">
+        <span class="hint" id="pc-hint">Voer eerst een land in</span>
+      </div>
+
+      <div class="field">
+        <label for="weight">Totaal gewicht zending (kg)</label>
+        <input type="number" id="weight" placeholder="Bijv. 450" min="1" step="0.1">
+      </div>
+
+      <div class="field">
+        <label for="pallets">Aantal pallets</label>
+        <input type="number" id="pallets" placeholder="Bijv. 2" min="1" max="99" value="1">
+      </div>
+
+      <div class="field">
+        <label for="length">Lengte per pallet (cm)</label>
+        <input type="number" id="length" placeholder="120" min="1" step="0.1" value="120">
+      </div>
+
+      <div class="field">
+        <label for="width">Breedte per pallet (cm)</label>
+        <input type="number" id="width" placeholder="80" min="1" step="0.1" value="80">
+      </div>
+
+      <div class="field">
+        <label for="height">Hoogte per pallet (cm)</label>
+        <input type="number" id="height" placeholder="180" min="1" step="0.1" value="180">
+        <div class="microcopy">Hoogte voor m³-berekening.</div>
+      </div>
+
+      <div class="field">
+        <label for="description">Omschrijving</label>
+        <input type="text" id="description" placeholder="Bijv. akoestische panelen">
+      </div>
+    </div>
+
+    <hr class="divider">
+    <button class="btn" onclick="calculate()">🔍 Bereken kostprijs inclusief dieseltoeslag</button>
+  </div>
+
+  <!-- ERROR -->
+  <div class="error-msg" id="error-msg" role="alert"></div>
+
+  </div>
+
+  <!-- RESULTAAT -->
+  <div class="card" id="result">
+    <div class="result-dual-badge" id="result-dual-badge">
+      <div class="result-badge-recommended" id="badge-recommended" style="display:none">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+        Aanbevolen
+      </div>
+      <div class="result-badge" id="badge-cheapest">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+        Goedkoopste optie
+      </div>
+    </div>
+
+    <!-- Kooiaap banner — alleen tonen als van toepassing -->
+    <div class="kooiaap-banner" id="kooiaap-banner" style="display:none">
+      🪤 <strong>Let op kosten Kooiaap: € 150,00</strong> — E. van Wijk rekent een kooiaaptoeslag bij lange pallets. Tel deze op bij de eindprijs.
+    </div>
+
+    <div class="result-top-row">
+      <div>
+        <div class="result-price"><span class="currency">€</span><span id="price-display">—</span></div>
+        <div class="result-price-sub" id="price-sub">incl. dieseltoeslag · excl. BTW</div>
+      </div>
+    </div>
+
+    <div class="result-info-grid">
+      <div class="info-box">
+        <div class="info-box-label">Vervoerder</div>
+        <div class="info-box-value" id="res-carrier">—</div>
+      </div>
+      <div class="info-box">
+        <div class="info-box-label">Land</div>
+        <div class="info-box-value" id="res-country">—</div>
+      </div>
+      <div class="info-box">
+        <div class="info-box-label">Postcode</div>
+        <div class="info-box-value" id="res-postcode">—</div>
+      </div>
+      <div class="info-box">
+        <div class="info-box-label">Totale laadmeter</div>
+        <div class="info-box-value" id="res-ldm">—</div>
+      </div>
+      <div class="info-box">
+        <div class="info-box-label">Betalend gewicht</div>
+        <div class="info-box-value" id="res-weight">—</div>
+      </div>
+      <div class="info-box">
+        <div class="info-box-label">Tariefregel</div>
+        <div class="info-box-value" id="res-tier">—</div>
+      </div>
+      <div class="info-box">
+        <div class="info-box-label">Dieseltoeslag</div>
+        <div class="info-box-value" id="res-surcharge">—</div>
+      </div>
+      <div class="info-box">
+        <div class="info-box-label">Periode</div>
+        <div class="info-box-value" id="res-period">—</div>
+      </div>
+    </div>
+
+    <div class="note" id="carrier-note"></div>
+    <div class="info-note mt12" id="method-note"></div>
+
+    <div style="margin-top:20px;">
+      <div class="card-title" style="margin-bottom:14px;">
+        <span class="card-title-icon">📊</span>
+        Alle vervoerders — beschikbaar &amp; niet beschikbaar voor deze route
+      </div>
+      <div class="quote-list" id="quote-list"></div>
+    </div>
+  </div>
+
+  <!-- VISUALISATIE -->
+  <div class="card" id="viz-section">
+    <div class="card-title">
+      <span class="card-title-icon">📈</span>
+      Prijsvergelijking per gewicht
+    </div>
+    <div class="viz-legend" id="viz-legend"></div>
+    <canvas id="viz-canvas" height="260"></canvas>
+    <div class="viz-subtitle" id="viz-subtitle"></div>
+  </div>
+
+  <!-- HOE REKENT DEZE TOOL -->
+  <div class="how-section">
+    <button class="how-toggle" onclick="toggleHowSection()" aria-expanded="false" id="how-toggle-btn">
+      <div>
+        <div class="how-toggle-title">ℹ️ Hoe rekent deze tool?</div>
+        <div class="how-toggle-sub">Vervoerders, dekkingen, berekeningslogica en beperkingen</div>
+      </div>
+      <span class="how-chevron" id="how-chevron">▼</span>
+    </button>
+    <div class="how-content" id="how-content">
+      <div class="carrier-info-grid">
+
+        <!-- KLG Europe -->
+        <div class="carrier-info-card">
+          <div class="carrier-info-name">
+            <div class="carrier-dot" style="background:var(--color-klg)"></div>
+            KLG Europe
+          </div>
+          <table class="carrier-info-table">
+            <tr><td>Gedekte landen</td><td>Duitsland (DE), Oostenrijk (AT), Frankrijk (FR excl. Corsica/postcode 20, Paris 75)</td></tr>
+            <tr><td>Basis</td><td>2-cijferig postcodeprefix → gewichtstier lookup</td></tr>
+            <tr><td>Chargeable weight</td><td>max(werkelijk gewicht, laadmeter × 1.750 kg)</td></tr>
+            <tr><td>Gewichtstiers (kg)</td><td>350 / 700 / 875 / 1.400 / 1.750 / 2.100 / 2.625 / 2.800 / 3.500</td></tr>
+            <tr><td>Toeslagen meegenomen</td><td>Dieseltoeslag via periodemodule ✓</td></tr>
+            <tr><td>Niet meegenomen</td><td>Duurzaamheidstoeslag, BTW, lengtetoeslag (bij &gt;2,4m)</td></tr>
+            <tr><td>Beperkingen</td><td>Tarieven geldig tot 30-06-2026. Zendingen &gt;3.500 kg betalend gewicht: geen tarief beschikbaar.</td></tr>
+          </table>
+        </div>
+
+        <!-- Steenbergen -->
+        <div class="carrier-info-card">
+          <div class="carrier-info-name">
+            <div class="carrier-dot" style="background:var(--color-steenbergen)"></div>
+            Steenbergen
+          </div>
+          <table class="carrier-info-table">
+            <tr><td>Gedekte landen</td><td>Nederland (NL), België (BE), Luxemburg (LU)</td></tr>
+            <tr><td>Basis</td><td>Laadmeter-stap per zone, met m³ als extra check</td></tr>
+            <tr><td>Zone indeling NL</td><td>NL1: postcodes 1000–4999 · NL2: 5000–9999</td></tr>
+            <tr><td>Zone indeling BE</td><td>BE1: 2000–2999 + 9000–9999 · BE2: overig · BE3: 6600–6999 + LU</td></tr>
+            <tr><td>Chargeable weight</td><td>max(werkelijk gewicht, ldm × 1.750, m³ × 330)</td></tr>
+            <tr><td>Ldm-bereik</td><td>0,2 t/m 5,0 ldm (excl. DOT en BTW)</td></tr>
+            <tr><td>Toeslagen meegenomen</td><td>Dieseltoeslag (DOT) via periodemodule ✓</td></tr>
+            <tr><td>Niet meegenomen</td><td>BTW, eventuele leveringstoeslag</td></tr>
+            <tr><td>Beperkingen</td><td>Bij &gt;5,0 ldm geen tarief beschikbaar in de huidige tabel.</td></tr>
+          </table>
+        </div>
+
+        <!-- E. van Wijk -->
+        <div class="carrier-info-card">
+          <div class="carrier-info-name">
+            <div class="carrier-dot" style="background:var(--color-vanwijk)"></div>
+            E. van Wijk Logistics
+          </div>
+          <table class="carrier-info-table">
+            <tr><td>Gedekte landen</td><td>Duitsland (DE)</td></tr>
+            <tr><td>Basis</td><td>5-cijferige postcode → zone A t/m I → gewichtstier lookup</td></tr>
+            <tr><td>Zones</td><td>A (goedkoopst, centraal) t/m I (duurste, perifeer)</td></tr>
+            <tr><td>Zone bepaling</td><td>2-cijferig prefix, met uitzonderingen op 3-cijferig prefix</td></tr>
+            <tr><td>Chargeable weight</td><td>max(werkelijk gewicht, laadmeter × 1.650 kg)</td></tr>
+            <tr><td>Gewichtstiers (kg)</td><td>660 t/m 10.725 kg (uitgebreide tabel)</td></tr>
+            <tr><td>Toeslagen meegenomen</td><td>Dieseltoeslag via periodemodule ✓</td></tr>
+            <tr><td>Niet meegenomen</td><td>BTW, dieseltoeslag apart opgegeven door vervoerder</td></tr>
+            <tr><td>Beperkingen</td><td>Tarieven geldig t/m 30-06-2026. Alleen DE.</td></tr>
+          </table>
+        </div>
+
+        <!-- Kuijf Logistics -->
+        <div class="carrier-info-card">
+          <div class="carrier-info-name">
+            <div class="carrier-dot" style="background:var(--color-kuijf)"></div>
+            Kuijf Logistics
+          </div>
+          <table class="carrier-info-table">
+            <tr><td>Gedekte landen</td><td>Nederland (NL), België (BE), Luxemburg (LU). Duitsland: op aanvraag.</td></tr>
+            <tr><td>Basis</td><td>Laadmeter-staffel (afgerond naar boven) per zone UI/Z1/Z2/Z3</td></tr>
+            <tr><td>Zone NL</td><td>UI=Utrecht industrie (3400–3999) · Z1=Randstad/Gelderland · Z2=Noord-Brabant/Limburg/Overijssel · Z3=Friesland/Groningen/Drenthe. Onbekende postcodes: handmatige check.</td></tr>
+            <tr><td>Zone BE</td><td>Z1=Brussel/Antwerpen · Z2=Leuven/Gent. Overig BE: handmatige check.</td></tr>
+            <tr><td>Chargeable weight</td><td>max(werkelijk gewicht, ldm × 1.650 kg)</td></tr>
+            <tr><td>LDM-staffels</td><td>0,4 t/m 3,2 ldm automatisch. ≥ 4,0 ldm: LTL/FTL op aanvraag.</td></tr>
+            <tr><td>Kooiaap toeslag</td><td>€ 150 mogelijk van toepassing bij staffels ≥ 2,4 ldm (lange/zware pallets)</td></tr>
+            <tr><td>Dieseltoeslag</td><td>Via periodemodule ✓ (tijdelijk gelijk aan Steenbergen; TODO: vervangen door echte Kuijf-data)</td></tr>
+            <tr><td>Niet meegenomen</td><td>BTW, meeneemheftruck-toeslag, definitieve bevestiging zone-indeling vanuit Kuijf PDF</td></tr>
+            <tr><td>Beperkingen</td><td>Tarieven zijn indicatief (bron: Kuijf distributiestaffel PDF). Altijd bevestigen bij Kuijf.</td></tr>
+          </table>
+        </div>
+
+      </div>
+
+      <div class="info-note mt16">
+        <strong>Algemene opmerking:</strong> Alle tarieven zijn kostprijzen exclusief BTW en exclusief eventuele extra toeslagen (duurzaamheid, lengtetoeslag, leveringstoeslag). De dieseltoeslag is ingebouwd via de periodemodule bovenaan. De eindprijzen zijn bedoeld als <em>interne ondergrens / minimale kostprijs</em>.
+      </div>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <footer>
+    Vergelijking gebaseerd op tariefbestanden 2026 van KLG Europe, E. van Wijk Logistics, Steenbergen en Kuijf Logistics (indicatief).<br>
+    Kuijf-tarieven zijn indicatief op basis van aangeleverd distributiestaffel-PDF. Altijd bevestigen bij Kuijf. Duitsland: op aanvraag.<br>
+    Overige EU-landen: via KLG Europe op aanvraag.<br>
+    <strong>Niet voor externe offertes.</strong> Intern gebruik Easy Noise Control B.V.
+  </footer>
+
+</div><!-- /container -->
+
+<script>
+/* ============================================================
+   TARIEFDATA — ONGEWIJZIGD VANUIT ORIGINELE CODE
+   ============================================================ */
+
+const KLG_RATES = {"AT":{"10":{"350":107.0,"700":174.0,"875":210.0,"1400":307.0,"1750":372.0,"2100":427.0,"2625":525.0,"2800":552.0,"3500":617.0},"11":{"350":107.0,"700":174.0,"875":210.0,"1400":307.0,"1750":372.0,"2100":427.0,"2625":525.0,"2800":552.0,"3500":617.0},"12":{"350":107.0,"700":174.0,"875":210.0,"1400":307.0,"1750":372.0,"2100":427.0,"2625":525.0,"2800":552.0,"3500":617.0},"13":{"350":107.0,"700":174.0,"875":210.0,"1400":307.0,"1750":372.0,"2100":427.0,"2625":525.0,"2800":552.0,"3500":617.0},"14":{"350":107.0,"700":174.0,"875":210.0,"1400":307.0,"1750":372.0,"2100":427.0,"2625":525.0,"2800":552.0,"3500":617.0},"15":{"350":102.0,"700":162.0,"875":195.0,"1400":284.0,"1750":345.0,"2100":397.0,"2625":491.0,"2800":518.0,"3500":617.0},"16":{"350":102.0,"700":162.0,"875":195.0,"1400":284.0,"1750":345.0,"2100":397.0,"2625":491.0,"2800":518.0,"3500":617.0},"17":{"350":102.0,"700":162.0,"875":195.0,"1400":284.0,"1750":345.0,"2100":397.0,"2625":491.0,"2800":518.0,"3500":617.0},"18":{"350":102.0,"700":162.0,"875":195.0,"1400":284.0,"1750":345.0,"2100":397.0,"2625":491.0,"2800":518.0,"3500":617.0},"19":{"350":102.0,"700":162.0,"875":195.0,"1400":284.0,"1750":345.0,"2100":397.0,"2625":491.0,"2800":518.0,"3500":617.0},"20":{"350":107.0,"700":174.0,"875":210.0,"1400":307.0,"1750":372.0,"2100":427.0,"2625":525.0,"2800":552.0,"3500":617.0},"21":{"350":108.0,"700":175.0,"875":211.0,"1400":309.0,"1750":374.0,"2100":430.0,"2625":542.0,"2800":569.0,"3500":617.0},"22":{"350":108.0,"700":175.0,"875":211.0,"1400":309.0,"1750":374.0,"2100":430.0,"2625":542.0,"2800":569.0,"3500":617.0},"23":{"350":107.0,"700":174.0,"875":210.0,"1400":307.0,"1750":372.0,"2100":427.0,"2625":525.0,"2800":552.0,"3500":617.0},"24":{"350":89.0,"700":149.0,"875":182.0,"1400":270.0,"1750":328.0,"2100":379.0,"2625":479.0,"2800":504.0,"3500":547.0},"25":{"350":107.0,"700":174.0,"875":210.0,"1400":307.0,"1750":372.0,"2100":427.0,"2625":525.0,"2800":552.0,"3500":617.0},"26":{"350":107.0,"700":174.0,"875":210.0,"1400":307.0,"1750":372.0,"2100":427.0,"2625":525.0,"2800":552.0,"3500":617.0},"27":{"350":108.0,"700":175.0,"875":211.0,"1400":309.0,"1750":374.0,"2100":430.0,"2625":529.0,"2800":556.0,"3500":617.0},"28":{"350":108.0,"700":175.0,"875":211.0,"1400":309.0,"1750":374.0,"2100":430.0,"2625":542.0,"2800":569.0,"3500":617.0},"30":{"350":106.0,"700":170.0,"875":206.0,"1400":300.0,"1750":364.0,"2100":418.0,"2625":513.0,"2800":539.0,"3500":617.0},"31":{"350":104.0,"700":166.0,"875":201.0,"1400":292.0,"1750":353.0,"2100":407.0,"2625":513.0,"2800":539.0,"3500":617.0},"32":{"350":101.0,"700":159.0,"875":191.0,"1400":277.0,"1750":336.0,"2100":387.0,"2625":473.0,"2800":498.0,"3500":617.0},"33":{"350":99.0,"700":155.0,"875":185.0,"1400":269.0,"1750":325.0,"2100":375.0,"2625":473.0,"2800":498.0,"3500":617.0},"34":{"350":106.0,"700":170.0,"875":206.0,"1400":300.0,"1750":364.0,"2100":418.0,"2625":513.0,"2800":539.0,"3500":617.0},"35":{"350":104.0,"700":166.0,"875":201.0,"1400":292.0,"1750":353.0,"2100":407.0,"2625":513.0,"2800":539.0,"3500":617.0},"36":{"350":101.0,"700":159.0,"875":191.0,"1400":277.0,"1750":336.0,"2100":387.0,"2625":473.0,"2800":498.0,"3500":617.0},"37":{"350":104.0,"700":166.0,"875":201.0,"1400":292.0,"1750":353.0,"2100":407.0,"2625":513.0,"2800":539.0,"3500":617.0},"38":{"350":101.0,"700":159.0,"875":191.0,"1400":277.0,"1750":336.0,"2100":387.0,"2625":473.0,"2800":498.0,"3500":617.0},"39":{"350":101.0,"700":159.0,"875":191.0,"1400":277.0,"1750":336.0,"2100":387.0,"2625":473.0,"2800":498.0,"3500":617.0},"40":{"350":90.0,"700":140.0,"875":168.0,"1400":245.0,"1750":296.0,"2100":342.0,"2625":419.0,"2800":442.0,"3500":561.0},"41":{"350":90.0,"700":140.0,"875":168.0,"1400":245.0,"1750":296.0,"2100":342.0,"2625":419.0,"2800":442.0,"3500":561.0},"42":{"350":90.0,"700":140.0,"875":168.0,"1400":245.0,"1750":296.0,"2100":342.0,"2625":419.0,"2800":442.0,"3500":561.0},"43":{"350":90.0,"700":140.0,"875":168.0,"1400":245.0,"1750":296.0,"2100":342.0,"2625":419.0,"2800":442.0,"3500":561.0},"44":{"350":90.0,"700":140.0,"875":168.0,"1400":245.0,"1750":296.0,"2100":342.0,"2625":419.0,"2800":442.0,"3500":561.0},"45":{"350":90.0,"700":140.0,"875":168.0,"1400":245.0,"1750":296.0,"2100":342.0,"2625":419.0,"2800":442.0,"3500":561.0},"46":{"350":90.0,"700":140.0,"875":168.0,"1400":245.0,"1750":296.0,"2100":342.0,"2625":419.0,"2800":442.0,"3500":561.0},"47":{"350":90.0,"700":140.0,"875":168.0,"1400":245.0,"1750":296.0,"2100":342.0,"2625":430.0,"2800":453.0,"3500":561.0},"48":{"350":101.0,"700":159.0,"875":191.0,"1400":277.0,"1750":336.0,"2100":387.0,"2625":460.0,"2800":485.0,"3500":561.0},"49":{"350":101.0,"700":159.0,"875":191.0,"1400":277.0,"1750":336.0,"2100":387.0,"2625":473.0,"2800":498.0,"3500":561.0},"50":{"350":104.0,"700":166.0,"875":201.0,"1400":292.0,"1750":353.0,"2100":407.0,"2625":500.0,"2800":526.0,"3500":561.0},"51":{"350":104.0,"700":166.0,"875":201.0,"1400":292.0,"1750":353.0,"2100":407.0,"2625":500.0,"2800":526.0,"3500":561.0},"52":{"350":101.0,"700":159.0,"875":191.0,"1400":277.0,"1750":336.0,"2100":387.0,"2625":473.0,"2800":498.0,"3500":561.0},"53":{"350":104.0,"700":166.0,"875":201.0,"1400":292.0,"1750":353.0,"2100":407.0,"2625":500.0,"2800":526.0,"3500":561.0},"54":{"350":104.0,"700":166.0,"875":201.0,"1400":292.0,"1750":353.0,"2100":407.0,"2625":500.0,"2800":526.0,"3500":561.0},"55":{"350":106.0,"700":169.0,"875":205.0,"1400":298.0,"1750":362.0,"2100":416.0,"2625":538.0,"2800":564.0,"3500":568.0},"56":{"350":106.0,"700":169.0,"875":205.0,"1400":298.0,"1750":362.0,"2100":416.0,"2625":525.0,"2800":552.0,"3500":561.0},"57":{"350":107.0,"700":174.0,"875":210.0,"1400":307.0,"1750":372.0,"2100":427.0,"2625":525.0,"2800":552.0,"3500":561.0},"60":{"350":103.0,"700":177.0,"875":218.0,"1400":325.0,"1750":398.0,"2100":456.0,"2625":551.0,"2800":578.0,"3500":587.0},"61":{"350":112.0,"700":184.0,"875":223.0,"1400":326.0,"1750":396.0,"2100":454.0,"2625":554.0,"2800":582.0,"3500":625.0},"62":{"350":112.0,"700":184.0,"875":223.0,"1400":326.0,"1750":396.0,"2100":454.0,"2625":554.0,"2800":582.0,"3500":625.0},"63":{"350":112.0,"700":184.0,"875":223.0,"1400":326.0,"1750":396.0,"2100":454.0,"2625":541.0,"2800":568.0,"3500":625.0},"64":{"350":114.0,"700":187.0,"875":228.0,"1400":334.0,"1750":405.0,"2100":464.0,"2625":585.0,"2800":613.0,"3500":655.0},"65":{"350":117.0,"700":194.0,"875":237.0,"1400":348.0,"1750":423.0,"2100":485.0,"2625":612.0,"2800":641.0,"3500":655.0},"66":{"350":117.0,"700":194.0,"875":237.0,"1400":348.0,"1750":423.0,"2100":485.0,"2625":612.0,"2800":641.0,"3500":655.0},"67":{"350":124.0,"700":208.0,"875":255.0,"1400":374.0,"1750":455.0,"2100":518.0,"2625":632.0,"2800":662.0,"3500":666.0},"68":{"350":124.0,"700":208.0,"875":255.0,"1400":374.0,"1750":455.0,"2100":518.0,"2625":632.0,"2800":662.0,"3500":666.0},"69":{"350":103.0,"700":177.0,"875":218.0,"1400":325.0,"1750":398.0,"2100":456.0,"2625":551.0,"2800":578.0,"3500":587.0},"70":{"350":108.0,"700":175.0,"875":211.0,"1400":309.0,"1750":374.0,"2100":430.0,"2625":542.0,"2800":569.0,"3500":617.0},"71":{"350":108.0,"700":175.0,"875":211.0,"1400":309.0,"1750":374.0,"2100":430.0,"2625":542.0,"2800":569.0,"3500":617.0},"72":{"350":108.0,"700":175.0,"875":211.0,"1400":309.0,"1750":374.0,"2100":430.0,"2625":542.0,"2800":569.0,"3500":617.0},"73":{"350":111.0,"700":182.0,"875":220.0,"1400":323.0,"1750":392.0,"2100":450.0,"2625":567.0,"2800":595.0,"3500":617.0},"74":{"350":113.0,"700":185.0,"875":225.0,"1400":330.0,"1750":401.0,"2100":460.0,"2625":581.0,"2800":610.0,"3500":617.0},"75":{"350":115.0,"700":191.0,"875":233.0,"1400":341.0,"1750":415.0,"2100":475.0,"2625":581.0,"2800":610.0,"3500":617.0},"80":{"350":108.0,"700":175.0,"875":211.0,"1400":309.0,"1750":374.0,"2100":430.0,"2625":529.0,"2800":556.0,"3500":651.0},"81":{"350":108.0,"700":175.0,"875":211.0,"1400":309.0,"1750":374.0,"2100":430.0,"2625":542.0,"2800":569.0,"3500":651.0},"82":{"350":111.0,"700":182.0,"875":220.0,"1400":323.0,"1750":392.0,"2100":450.0,"2625":567.0,"2800":595.0,"3500":651.0},"83":{"350":112.0,"700":184.0,"875":223.0,"1400":326.0,"1750":396.0,"2100":454.0,"2625":554.0,"2800":582.0,"3500":651.0},"84":{"350":109.0,"700":178.0,"875":216.0,"1400":316.0,"1750":382.0,"2100":439.0,"2625":554.0,"2800":582.0,"3500":651.0},"85":{"350":109.0,"700":178.0,"875":216.0,"1400":316.0,"1750":382.0,"2100":439.0,"2625":554.0,"2800":582.0,"3500":651.0},"86":{"350":108.0,"700":175.0,"875":211.0,"1400":309.0,"1750":374.0,"2100":430.0,"2625":529.0,"2800":556.0,"3500":651.0},"87":{"350":108.0,"700":175.0,"875":211.0,"1400":309.0,"1750":374.0,"2100":430.0,"2625":529.0,"2800":556.0,"3500":651.0},"88":{"350":108.0,"700":175.0,"875":211.0,"1400":309.0,"1750":374.0,"2100":430.0,"2625":529.0,"2800":556.0,"3500":651.0},"89":{"350":106.0,"700":170.0,"875":206.0,"1400":300.0,"1750":364.0,"2100":418.0,"2625":500.0,"2800":526.0,"3500":651.0},"90":{"350":118.0,"700":197.0,"875":241.0,"1400":354.0,"1750":429.0,"2100":489.0,"2625":585.0,"2800":613.0,"3500":651.0},"91":{"350":118.0,"700":197.0,"875":241.0,"1400":354.0,"1750":429.0,"2100":489.0,"2625":585.0,"2800":613.0,"3500":651.0},"92":{"350":118.0,"700":197.0,"875":241.0,"1400":354.0,"1750":429.0,"2100":489.0,"2625":585.0,"2800":613.0,"3500":651.0},"93":{"350":111.0,"700":182.0,"875":220.0,"1400":323.0,"1750":392.0,"2100":450.0,"2625":555.0,"2800":583.0,"3500":651.0},"94":{"350":114.0,"700":187.0,"875":228.0,"1400":334.0,"1750":405.0,"2100":464.0,"2625":567.0,"2800":595.0,"3500":651.0},"95":{"350":118.0,"700":197.0,"875":241.0,"1400":354.0,"1750":429.0,"2100":489.0,"2625":585.0,"2800":613.0,"3500":651.0},"96":{"350":118.0,"700":197.0,"875":241.0,"1400":354.0,"1750":429.0,"2100":489.0,"2625":585.0,"2800":613.0,"3500":651.0},"97":{"350":114.0,"700":187.0,"875":228.0,"1400":334.0,"1750":405.0,"2100":464.0,"2625":585.0,"2800":613.0,"3500":651.0},"98":{"350":114.0,"700":187.0,"875":228.0,"1400":334.0,"1750":405.0,"2100":464.0,"2625":585.0,"2800":613.0,"3500":651.0},"99":{"350":121.0,"700":201.0,"875":246.0,"1400":362.0,"1750":438.0,"2100":500.0,"2625":608.0,"2800":637.0,"3500":651.0}},"DE":{"01":{"350":73.0,"700":114.0,"875":134.0,"1400":195.0,"1750":224.0,"2100":265.0,"2625":308.0,"2800":341.0,"3500":398.0},"02":{"350":78.0,"700":123.0,"875":142.0,"1400":213.0,"1750":241.0,"2100":284.0,"2625":327.0,"2800":361.0,"3500":417.0},"03":{"350":86.0,"700":132.0,"875":155.0,"1400":229.0,"1750":257.0,"2100":301.0,"2625":345.0,"2800":379.0,"3500":426.0},"04":{"350":70.0,"700":108.0,"875":125.0,"1400":183.0,"1750":208.0,"2100":245.0,"2625":283.0,"2800":314.0,"3500":365.0},"06":{"350":75.0,"700":118.0,"875":137.0,"1400":205.0,"1750":231.0,"2100":271.0,"2625":312.0,"2800":343.0,"3500":373.0},"07":{"350":71.0,"700":111.0,"875":129.0,"1400":188.0,"1750":215.0,"2100":254.0,"2625":294.0,"2800":327.0,"3500":365.0},"08":{"350":71.0,"700":111.0,"875":130.0,"1400":189.0,"1750":216.0,"2100":255.0,"2625":296.0,"2800":328.0,"3500":365.0},"09":{"350":66.0,"700":104.0,"875":122.0,"1400":178.0,"1750":203.0,"2100":236.0,"2625":273.0,"2800":302.0,"3500":353.0},"10":{"350":71.0,"700":108.0,"875":126.0,"1400":185.0,"1750":214.0,"2100":252.0,"2625":296.0,"2800":322.0,"3500":380.0},"12":{"350":71.0,"700":108.0,"875":126.0,"1400":185.0,"1750":214.0,"2100":252.0,"2625":296.0,"2800":322.0,"3500":380.0},"13":{"350":71.0,"700":108.0,"875":126.0,"1400":185.0,"1750":214.0,"2100":252.0,"2625":296.0,"2800":322.0,"3500":380.0},"14":{"350":78.0,"700":123.0,"875":142.0,"1400":213.0,"1750":242.0,"2100":286.0,"2625":329.0,"2800":362.0,"3500":390.0},"15":{"350":78.0,"700":124.0,"875":143.0,"1400":214.0,"1750":244.0,"2100":288.0,"2625":331.0,"2800":365.0,"3500":400.0},"16":{"350":83.0,"700":133.0,"875":155.0,"1400":233.0,"1750":266.0,"2100":315.0,"2625":365.0,"2800":372.0,"3500":391.0},"17":{"350":101.0,"700":161.0,"875":190.0,"1400":284.0,"1750":319.0,"2100":369.0,"2625":421.0,"2800":460.0,"3500":487.0},"18":{"350":82.0,"700":132.0,"875":155.0,"1400":232.0,"1750":265.0,"2100":313.0,"2625":363.0,"2800":398.0,"3500":464.0},"19":{"350":90.0,"700":141.0,"875":165.0,"1400":246.0,"1750":279.0,"2100":328.0,"2625":358.0,"2800":365.0,"3500":382.0},"20":{"350":70.0,"700":105.0,"875":123.0,"1400":180.0,"1750":207.0,"2100":245.0,"2625":286.0,"2800":313.0,"3500":329.0},"21":{"350":77.0,"700":121.0,"875":140.0,"1400":210.0,"1750":237.0,"2100":278.0,"2625":310.0,"2800":314.0,"3500":329.0},"22":{"350":71.0,"700":110.0,"875":127.0,"1400":187.0,"1750":215.0,"2100":251.0,"2625":292.0,"2800":322.0,"3500":339.0},"23":{"350":77.0,"700":125.0,"875":145.0,"1400":215.0,"1750":247.0,"2100":294.0,"2625":344.0,"2800":364.0,"3500":382.0},"24":{"350":88.0,"700":135.0,"875":157.0,"1400":233.0,"1750":262.0,"2100":308.0,"2625":352.0,"2800":379.0,"3500":400.0},"25":{"350":87.0,"700":134.0,"875":156.0,"1400":232.0,"1750":262.0,"2100":307.0,"2625":351.0,"2800":365.0,"3500":382.0},"26":{"350":77.0,"700":122.0,"875":142.0,"1400":210.0,"1750":242.0,"2100":284.0,"2625":294.0,"2800":298.0,"3500":313.0},"27":{"350":76.0,"700":119.0,"875":139.0,"1400":207.0,"1750":234.0,"2100":274.0,"2625":301.0,"2800":307.0,"3500":321.0},"28":{"350":71.0,"700":111.0,"875":129.0,"1400":189.0,"1750":216.0,"2100":256.0,"2625":278.0,"2800":282.0,"3500":295.0},"29":{"350":82.0,"700":125.0,"875":144.0,"1400":213.0,"1750":237.0,"2100":278.0,"2625":301.0,"2800":307.0,"3500":321.0},"30":{"350":66.0,"700":99.0,"875":113.0,"1400":165.0,"1750":188.0,"2100":223.0,"2625":259.0,"2800":272.0,"3500":287.0},"31":{"350":69.0,"700":106.0,"875":123.0,"1400":179.0,"1750":203.0,"2100":240.0,"2625":275.0,"2800":289.0,"3500":303.0},"32":{"350":66.0,"700":101.0,"875":116.0,"1400":171.0,"1750":195.0,"2100":225.0,"2625":244.0,"2800":247.0,"3500":260.0},"33":{"350":69.0,"700":105.0,"875":122.0,"1400":176.0,"1750":199.0,"2100":235.0,"2625":244.0,"2800":247.0,"3500":261.0},"34":{"350":72.0,"700":111.0,"875":128.0,"1400":189.0,"1750":211.0,"2100":247.0,"2625":278.0,"2800":282.0,"3500":295.0},"35":{"350":69.0,"700":104.0,"875":121.0,"1400":176.0,"1750":198.0,"2100":235.0,"2625":270.0,"2800":282.0,"3500":295.0},"36":{"350":68.0,"700":103.0,"875":118.0,"1400":171.0,"1750":194.0,"2100":230.0,"2625":263.0,"2800":289.0,"3500":303.0},"37":{"350":68.0,"700":103.0,"875":119.0,"1400":174.0,"1750":195.0,"2100":231.0,"2625":265.0,"2800":290.0,"3500":303.0},"38":{"350":74.0,"700":114.0,"875":133.0,"1400":197.0,"1750":222.0,"2100":261.0,"2625":287.0,"2800":289.0,"3500":304.0},"39":{"350":70.0,"700":107.0,"875":125.0,"1400":182.0,"1750":208.0,"2100":244.0,"2625":282.0,"2800":314.0,"3500":330.0},"40":{"350":66.0,"700":99.0,"875":114.0,"1400":164.0,"1750":188.0,"2100":205.0,"2625":213.0,"2800":215.0,"3500":225.0},"41":{"350":68.0,"700":104.0,"875":119.0,"1400":174.0,"1750":197.0,"2100":205.0,"2625":213.0,"2800":215.0,"3500":225.0},"42":{"350":66.0,"700":98.0,"875":113.0,"1400":163.0,"1750":188.0,"2100":213.0,"2625":221.0,"2800":223.0,"3500":234.0},"44":{"350":65.0,"700":97.0,"875":112.0,"1400":162.0,"1750":185.0,"2100":213.0,"2625":221.0,"2800":223.0,"3500":235.0},"45":{"350":68.0,"700":103.0,"875":118.0,"1400":172.0,"1750":195.0,"2100":213.0,"2625":221.0,"2800":223.0,"3500":235.0},"46":{"350":70.0,"700":108.0,"875":125.0,"1400":183.0,"1750":201.0,"2100":205.0,"2625":213.0,"2800":215.0,"3500":225.0},"47":{"350":70.0,"700":108.0,"875":125.0,"1400":183.0,"1750":192.0,"2100":197.0,"2625":204.0,"2800":207.0,"3500":215.0},"48":{"350":72.0,"700":111.0,"875":129.0,"1400":188.0,"1750":214.0,"2100":221.0,"2625":230.0,"2800":233.0,"3500":243.0},"49":{"350":74.0,"700":114.0,"875":132.0,"1400":196.0,"1750":221.0,"2100":237.0,"2625":244.0,"2800":247.0,"3500":260.0},"50":{"350":69.0,"700":107.0,"875":123.0,"1400":179.0,"1750":202.0,"2100":221.0,"2625":230.0,"2800":233.0,"3500":243.0},"51":{"350":69.0,"700":106.0,"875":122.0,"1400":177.0,"1750":201.0,"2100":222.0,"2625":230.0,"2800":233.0,"3500":243.0},"52":{"350":68.0,"700":104.0,"875":119.0,"1400":174.0,"1750":197.0,"2100":213.0,"2625":221.0,"2800":223.0,"3500":234.0},"53":{"350":74.0,"700":114.0,"875":132.0,"1400":195.0,"1750":215.0,"2100":221.0,"2625":230.0,"2800":233.0,"3500":243.0},"54":{"350":69.0,"700":107.0,"875":124.0,"1400":180.0,"1750":205.0,"2100":242.0,"2625":261.0,"2800":265.0,"3500":278.0},"55":{"350":76.0,"700":117.0,"875":137.0,"1400":204.0,"1750":231.0,"2100":267.0,"2625":278.0,"2800":282.0,"3500":294.0},"56":{"350":69.0,"700":107.0,"875":123.0,"1400":179.0,"1750":204.0,"2100":236.0,"2625":244.0,"2800":248.0,"3500":261.0},"57":{"350":69.0,"700":105.0,"875":122.0,"1400":177.0,"1750":199.0,"2100":236.0,"2625":254.0,"2800":256.0,"3500":269.0},"58":{"350":68.0,"700":103.0,"875":118.0,"1400":172.0,"1750":195.0,"2100":227.0,"2625":254.0,"2800":257.0,"3500":269.0},"59":{"350":69.0,"700":105.0,"875":122.0,"1400":176.0,"1750":199.0,"2100":236.0,"2625":254.0,"2800":256.0,"3500":269.0},"60":{"350":65.0,"700":97.0,"875":110.0,"1400":161.0,"1750":184.0,"2100":217.0,"2625":245.0,"2800":248.0,"3500":260.0},"61":{"350":65.0,"700":101.0,"875":116.0,"1400":169.0,"1750":192.0,"2100":223.0,"2625":245.0,"2800":247.0,"3500":260.0},"63":{"350":69.0,"700":105.0,"875":122.0,"1400":177.0,"1750":201.0,"2100":237.0,"2625":261.0,"2800":266.0,"3500":277.0},"64":{"350":69.0,"700":106.0,"875":125.0,"1400":180.0,"1750":205.0,"2100":242.0,"2625":261.0,"2800":265.0,"3500":277.0},"65":{"350":69.0,"700":104.0,"875":121.0,"1400":176.0,"1750":199.0,"2100":235.0,"2625":254.0,"2800":256.0,"3500":268.0},"66":{"350":76.0,"700":118.0,"875":138.0,"1400":204.0,"1750":232.0,"2100":272.0,"2625":287.0,"2800":289.0,"3500":303.0},"67":{"350":84.0,"700":128.0,"875":149.0,"1400":219.0,"1750":244.0,"2100":252.0,"2625":261.0,"2800":265.0,"3500":278.0},"68":{"350":68.0,"700":104.0,"875":119.0,"1400":176.0,"1750":201.0,"2100":233.0,"2625":261.0,"2800":265.0,"3500":277.0},"69":{"350":68.0,"700":104.0,"875":119.0,"1400":176.0,"1750":201.0,"2100":233.0,"2625":270.0,"2800":282.0,"3500":295.0},"70":{"350":66.0,"700":100.0,"875":115.0,"1400":168.0,"1750":193.0,"2100":229.0,"2625":265.0,"2800":290.0,"3500":340.0},"71":{"350":70.0,"700":108.0,"875":126.0,"1400":184.0,"1750":211.0,"2100":246.0,"2625":286.0,"2800":316.0,"3500":348.0},"72":{"350":73.0,"700":114.0,"875":132.0,"1400":194.0,"1750":222.0,"2100":264.0,"2625":305.0,"2800":339.0,"3500":366.0},"73":{"350":72.0,"700":111.0,"875":130.0,"1400":190.0,"1750":217.0,"2100":257.0,"2625":297.0,"2800":329.0,"3500":382.0},"74":{"350":70.0,"700":107.0,"875":125.0,"1400":182.0,"1750":206.0,"2100":243.0,"2625":281.0,"2800":312.0,"3500":339.0},"75":{"350":71.0,"700":111.0,"875":129.0,"1400":189.0,"1750":216.0,"2100":256.0,"2625":295.0,"2800":322.0,"3500":339.0},"76":{"350":68.0,"700":104.0,"875":121.0,"1400":177.0,"1750":202.0,"2100":235.0,"2625":271.0,"2800":299.0,"3500":339.0},"77":{"350":73.0,"700":114.0,"875":133.0,"1400":195.0,"1750":224.0,"2100":265.0,"2625":308.0,"2800":341.0,"3500":383.0},"78":{"350":73.0,"700":114.0,"875":133.0,"1400":195.0,"1750":223.0,"2100":265.0,"2625":308.0,"2800":341.0,"3500":397.0},"79":{"350":73.0,"700":114.0,"875":134.0,"1400":196.0,"1750":225.0,"2100":266.0,"2625":310.0,"2800":343.0,"3500":400.0},"80":{"350":75.0,"700":116.0,"875":137.0,"1400":202.0,"1750":235.0,"2100":278.0,"2625":328.0,"2800":356.0,"3500":423.0},"81":{"350":78.0,"700":125.0,"875":145.0,"1400":215.0,"1750":249.0,"2100":294.0,"2625":345.0,"2800":380.0,"3500":434.0},"82":{"350":83.0,"700":132.0,"875":155.0,"1400":232.0,"1750":267.0,"2100":314.0,"2625":365.0,"2800":400.0,"3500":434.0},"83":{"350":79.0,"700":126.0,"875":146.0,"1400":219.0,"1750":249.0,"2100":293.0,"2625":339.0,"2800":373.0,"3500":432.0},"84":{"350":74.0,"700":117.0,"875":137.0,"1400":202.0,"1750":232.0,"2100":274.0,"2625":319.0,"2800":352.0,"3500":412.0},"85":{"350":78.0,"700":124.0,"875":145.0,"1400":214.0,"1750":248.0,"2100":293.0,"2625":344.0,"2800":379.0,"3500":435.0},"86":{"350":76.0,"700":121.0,"875":140.0,"1400":208.0,"1750":239.0,"2100":283.0,"2625":329.0,"2800":364.0,"3500":426.0},"87":{"350":74.0,"700":116.0,"875":136.0,"1400":199.0,"1750":230.0,"2100":271.0,"2625":315.0,"2800":349.0,"3500":408.0},"88":{"350":79.0,"700":124.0,"875":145.0,"1400":216.0,"1750":246.0,"2100":290.0,"2625":334.0,"2800":368.0,"3500":426.0},"89":{"350":74.0,"700":115.0,"875":135.0,"1400":198.0,"1750":228.0,"2100":269.0,"2625":313.0,"2800":346.0,"3500":382.0},"90":{"350":66.0,"700":99.0,"875":115.0,"1400":167.0,"1750":192.0,"2100":227.0,"2625":264.0,"2800":289.0,"3500":338.0},"91":{"350":69.0,"700":107.0,"875":124.0,"1400":181.0,"1750":206.0,"2100":242.0,"2625":279.0,"2800":312.0,"3500":348.0},"92":{"350":82.0,"700":125.0,"875":145.0,"1400":214.0,"1750":239.0,"2100":279.0,"2625":316.0,"2800":350.0,"3500":390.0},"93":{"350":73.0,"700":114.0,"875":134.0,"1400":196.0,"1750":224.0,"2100":265.0,"2625":308.0,"2800":342.0,"3500":365.0},"94":{"350":79.0,"700":126.0,"875":145.0,"1400":218.0,"1750":247.0,"2100":291.0,"2625":336.0,"2800":370.0,"3500":426.0},"95":{"350":82.0,"700":125.0,"875":144.0,"1400":214.0,"1750":239.0,"2100":279.0,"2625":316.0,"2800":350.0,"3500":400.0},"96":{"350":69.0,"700":107.0,"875":124.0,"1400":181.0,"1750":206.0,"2100":242.0,"2625":278.0,"2800":311.0,"3500":359.0},"97":{"350":74.0,"700":115.0,"875":133.0,"1400":197.0,"1750":223.0,"2100":261.0,"2625":299.0,"2800":322.0,"3500":339.0},"98":{"350":74.0,"700":115.0,"875":133.0,"1400":197.0,"1750":222.0,"2100":261.0,"2625":298.0,"2800":329.0,"3500":365.0},"99":{"350":71.0,"700":110.0,"875":128.0,"1400":187.0,"1750":214.0,"2100":252.0,"2625":292.0,"2800":325.0,"3500":348.0}},"FR":{"01":{"350":114.0,"700":143.0,"875":164.0,"1400":247.0,"1750":294.0,"2100":342.0,"2625":412.0,"2800":434.0,"3500":642.0},"02":{"350":92.0,"700":115.0,"875":136.0,"1400":197.0,"1750":233.0,"2100":269.0,"2625":322.0,"2800":330.0,"3500":340.0},"03":{"350":125.0,"700":156.0,"875":177.0,"1400":272.0,"1750":322.0,"2100":374.0,"2625":458.0,"2800":486.0,"3500":610.0},"04":{"350":149.0,"700":186.0,"875":206.0,"1400":325.0,"1750":383.0,"2100":446.0,"2625":539.0,"2800":570.0,"3500":845.0},"05":{"350":136.0,"700":170.0,"875":191.0,"1400":302.0,"1750":359.0,"2100":421.0,"2625":512.0,"2800":542.0,"3500":822.0},"06":{"350":138.0,"700":172.0,"875":202.0,"1400":297.0,"1750":354.0,"2100":410.0,"2625":496.0,"2800":524.0,"3500":876.0},"07":{"350":134.0,"700":167.0,"875":188.0,"1400":286.0,"1750":340.0,"2100":387.0,"2625":464.0,"2800":487.0,"3500":732.0},"08":{"350":106.0,"700":133.0,"875":156.0,"1400":223.0,"1750":241.0,"2100":250.0,"2625":265.0,"2800":282.0,"3500":295.0},"09":{"350":135.0,"700":169.0,"875":201.0,"1400":296.0,"1750":353.0,"2100":409.0,"2625":495.0,"2800":524.0,"3500":876.0},"10":{"350":102.0,"700":128.0,"875":151.0,"1400":221.0,"1750":263.0,"2100":304.0,"2625":368.0,"2800":389.0,"3500":457.0},"11":{"350":145.0,"700":181.0,"875":206.0,"1400":322.0,"1750":380.0,"2100":441.0,"2625":536.0,"2800":568.0,"3500":876.0},"12":{"350":149.0,"700":186.0,"875":211.0,"1400":334.0,"1750":398.0,"2100":467.0,"2625":569.0,"2800":604.0,"3500":756.0},"13":{"350":146.0,"700":182.0,"875":216.0,"1400":316.0,"1750":374.0,"2100":432.0,"2625":520.0,"2800":549.0,"3500":784.0},"14":{"350":103.0,"700":129.0,"875":153.0,"1400":224.0,"1750":267.0,"2100":309.0,"2625":373.0,"2800":394.0,"3500":463.0},"15":{"350":146.0,"700":182.0,"875":203.0,"1400":310.0,"1750":358.0,"2100":410.0,"2625":489.0,"2800":516.0,"3500":732.0},"16":{"350":128.0,"700":160.0,"875":181.0,"1400":275.0,"1750":322.0,"2100":372.0,"2625":449.0,"2800":474.0,"3500":703.0},"17":{"350":122.0,"700":153.0,"875":174.0,"1400":262.0,"1750":312.0,"2100":358.0,"2625":432.0,"2800":454.0,"3500":703.0},"18":{"350":104.0,"700":130.0,"875":154.0,"1400":222.0,"1750":263.0,"2100":302.0,"2625":363.0,"2800":383.0,"3500":585.0},"19":{"350":141.0,"700":176.0,"875":196.0,"1400":298.0,"1750":346.0,"2100":397.0,"2625":476.0,"2800":502.0,"3500":732.0},"20":{"350":null,"700":null,"875":null,"1400":null,"1750":null,"2100":null,"2625":null,"2800":null,"3500":null},"21":{"350":106.0,"700":133.0,"875":156.0,"1400":227.0,"1750":266.0,"2100":307.0,"2625":366.0,"2800":387.0,"3500":531.0},"22":{"350":122.0,"700":152.0,"875":179.0,"1400":261.0,"1750":307.0,"2100":353.0,"2625":424.0,"2800":447.0,"3500":703.0},"23":{"350":134.0,"700":167.0,"875":188.0,"1400":292.0,"1750":345.0,"2100":401.0,"2625":488.0,"2800":516.0,"3500":642.0},"24":{"350":141.0,"700":176.0,"875":199.0,"1400":312.0,"1750":368.0,"2100":427.0,"2625":521.0,"2800":551.0,"3500":756.0},"25":{"350":110.0,"700":137.0,"875":160.0,"1400":232.0,"1750":272.0,"2100":313.0,"2625":373.0,"2800":394.0,"3500":558.0},"26":{"350":134.0,"700":167.0,"875":188.0,"1400":286.0,"1750":340.0,"2100":387.0,"2625":464.0,"2800":487.0,"3500":703.0},"27":{"350":99.0,"700":124.0,"875":146.0,"1400":213.0,"1750":254.0,"2100":293.0,"2625":352.0,"2800":372.0,"3500":439.0},"28":{"350":101.0,"700":126.0,"875":148.0,"1400":216.0,"1750":257.0,"2100":297.0,"2625":358.0,"2800":378.0,"3500":439.0},"29":{"350":142.0,"700":178.0,"875":209.0,"1400":299.0,"1750":349.0,"2100":399.0,"2625":473.0,"2800":498.0,"3500":822.0},"30":{"350":123.0,"700":154.0,"875":184.0,"1400":274.0,"1750":329.0,"2100":383.0,"2625":467.0,"2800":494.0,"3500":756.0},"31":{"350":123.0,"700":154.0,"875":184.0,"1400":274.0,"1750":329.0,"2100":383.0,"2625":467.0,"2800":494.0,"3500":822.0},"32":{"350":151.0,"700":189.0,"875":214.0,"1400":329.0,"1750":390.0,"2100":445.0,"2625":535.0,"2800":565.0,"3500":822.0},"33":{"350":121.0,"700":151.0,"875":180.0,"1400":267.0,"1750":320.0,"2100":373.0,"2625":453.0,"2800":480.0,"3500":756.0},"34":{"350":130.0,"700":162.0,"875":192.0,"1400":286.0,"1750":341.0,"2100":397.0,"2625":481.0,"2800":508.0,"3500":784.0},"35":{"350":106.0,"700":133.0,"875":158.0,"1400":233.0,"1750":276.0,"2100":321.0,"2625":388.0,"2800":410.0,"3500":610.0},"36":{"350":104.0,"700":130.0,"875":154.0,"1400":222.0,"1750":263.0,"2100":302.0,"2625":363.0,"2800":383.0,"3500":610.0},"37":{"350":110.0,"700":137.0,"875":162.0,"1400":234.0,"1750":274.0,"2100":316.0,"2625":377.0,"2800":398.0,"3500":558.0},"38":{"350":130.0,"700":162.0,"875":182.0,"1400":275.0,"1750":323.0,"2100":372.0,"2625":445.0,"2800":469.0,"3500":703.0},"39":{"350":122.0,"700":152.0,"875":178.0,"1400":255.0,"1750":296.0,"2100":339.0,"2625":402.0,"2800":423.0,"3500":585.0},"40":{"350":144.0,"700":180.0,"875":204.0,"1400":320.0,"1750":377.0,"2100":437.0,"2625":534.0,"2800":565.0,"3500":876.0},"41":{"350":109.0,"700":136.0,"875":161.0,"1400":233.0,"1750":275.0,"2100":317.0,"2625":379.0,"2800":400.0,"3500":531.0},"42":{"350":126.0,"700":158.0,"875":178.0,"1400":269.0,"1750":318.0,"2100":364.0,"2625":439.0,"2800":461.0,"3500":675.0},"43":{"350":134.0,"700":167.0,"875":188.0,"1400":298.0,"1750":354.0,"2100":415.0,"2625":504.0,"2800":534.0,"3500":703.0},"44":{"350":108.0,"700":135.0,"875":160.0,"1400":236.0,"1750":282.0,"2100":327.0,"2625":396.0,"2800":418.0,"3500":642.0},"45":{"350":102.0,"700":128.0,"875":151.0,"1400":221.0,"1750":263.0,"2100":304.0,"2625":368.0,"2800":389.0,"3500":463.0},"46":{"350":149.0,"700":186.0,"875":211.0,"1400":334.0,"1750":398.0,"2100":467.0,"2625":569.0,"2800":604.0,"3500":756.0},"47":{"350":125.0,"700":156.0,"875":180.0,"1400":278.0,"1750":337.0,"2100":389.0,"2625":474.0,"2800":501.0,"3500":784.0},"48":{"350":151.0,"700":189.0,"875":210.0,"1400":334.0,"1750":397.0,"2100":460.0,"2625":575.0,"2800":609.0,"3500":756.0},"49":{"350":108.0,"700":135.0,"875":160.0,"1400":236.0,"1750":282.0,"2100":327.0,"2625":396.0,"2800":418.0,"3500":610.0},"50":{"350":112.0,"700":140.0,"875":165.0,"1400":241.0,"1750":285.0,"2100":328.0,"2625":394.0,"2800":417.0,"3500":558.0},"51":{"350":94.0,"700":117.0,"875":138.0,"1400":202.0,"1750":238.0,"2100":274.0,"2625":330.0,"2800":348.0,"3500":387.0},"52":{"350":98.0,"700":122.0,"875":143.0,"1400":209.0,"1750":248.0,"2100":287.0,"2625":345.0,"2800":365.0,"3500":457.0},"53":{"350":110.0,"700":137.0,"875":162.0,"1400":238.0,"1750":283.0,"2100":327.0,"2625":395.0,"2800":418.0,"3500":585.0},"54":{"350":95.0,"700":119.0,"875":140.0,"1400":203.0,"1750":239.0,"2100":275.0,"2625":329.0,"2800":348.0,"3500":350.0},"55":{"350":92.0,"700":115.0,"875":136.0,"1400":197.0,"1750":233.0,"2100":269.0,"2625":322.0,"2800":336.0,"3500":340.0},"56":{"350":127.0,"700":159.0,"875":187.0,"1400":271.0,"1750":319.0,"2100":366.0,"2625":437.0,"2800":461.0,"3500":703.0},"57":{"350":105.0,"700":131.0,"875":153.0,"1400":220.0,"1750":258.0,"2100":294.0,"2625":316.0,"2800":330.0,"3500":340.0},"58":{"350":121.0,"700":151.0,"875":167.0,"1400":263.0,"1750":305.0,"2100":350.0,"2625":423.0,"2800":448.0,"3500":558.0},"59":{"350":86.0,"700":108.0,"875":127.0,"1400":183.0,"1750":214.0,"2100":246.0,"2625":254.0,"2800":267.0,"3500":277.0},"60":{"350":95.0,"700":119.0,"875":141.0,"1400":206.0,"1750":243.0,"2100":281.0,"2625":338.0,"2800":356.0,"3500":387.0},"61":{"350":115.0,"700":144.0,"875":169.0,"1400":246.0,"1750":291.0,"2100":335.0,"2625":401.0,"2800":424.0,"3500":494.0},"62":{"350":86.0,"700":108.0,"875":127.0,"1400":183.0,"1750":214.0,"2100":246.0,"2625":271.0,"2800":284.0,"3500":295.0},"63":{"350":116.0,"700":145.0,"875":166.0,"1400":252.0,"1750":299.0,"2100":348.0,"2625":421.0,"2800":445.0,"3500":642.0},"64":{"350":144.0,"700":180.0,"875":204.0,"1400":320.0,"1750":383.0,"2100":448.0,"2625":547.0,"2800":578.0,"3500":876.0},"65":{"350":144.0,"700":180.0,"875":204.0,"1400":320.0,"1750":383.0,"2100":448.0,"2625":547.0,"2800":578.0,"3500":876.0},"66":{"350":150.0,"700":188.0,"875":213.0,"1400":339.0,"1750":405.0,"2100":474.0,"2625":578.0,"2800":613.0,"3500":876.0},"67":{"350":110.0,"700":138.0,"875":163.0,"1400":236.0,"1750":277.0,"2100":318.0,"2625":381.0,"2800":401.0,"3500":439.0},"68":{"350":99.0,"700":124.0,"875":146.0,"1400":213.0,"1750":254.0,"2100":293.0,"2625":352.0,"2800":372.0,"3500":463.0},"69":{"350":117.0,"700":146.0,"875":167.0,"1400":254.0,"1750":299.0,"2100":347.0,"2625":418.0,"2800":441.0,"3500":642.0},"70":{"350":110.0,"700":137.0,"875":160.0,"1400":232.0,"1750":272.0,"2100":313.0,"2625":373.0,"2800":394.0,"3500":494.0},"71":{"350":118.0,"700":148.0,"875":167.0,"1400":259.0,"1750":311.0,"2100":356.0,"2625":430.0,"2800":454.0,"3500":585.0},"72":{"350":106.0,"700":133.0,"875":157.0,"1400":228.0,"1750":269.0,"2100":310.0,"2625":372.0,"2800":393.0,"3500":531.0},"73":{"350":126.0,"700":158.0,"875":178.0,"1400":277.0,"1750":324.0,"2100":375.0,"2625":455.0,"2800":481.0,"3500":732.0},"74":{"350":130.0,"700":162.0,"875":182.0,"1400":286.0,"1750":336.0,"2100":382.0,"2625":459.0,"2800":482.0,"3500":732.0},"75":{"350":null,"700":null,"875":null,"1400":null,"1750":null,"2100":null,"2625":null,"2800":null,"3500":null},"76":{"350":99.0,"700":124.0,"875":146.0,"1400":213.0,"1750":254.0,"2100":293.0,"2625":352.0,"2800":372.0,"3500":439.0},"77":{"350":113.0,"700":141.0,"875":166.0,"1400":239.0,"1750":281.0,"2100":322.0,"2625":384.0,"2800":405.0,"3500":422.0},"78":{"350":107.0,"700":134.0,"875":158.0,"1400":229.0,"1750":269.0,"2100":309.0,"2625":370.0,"2800":391.0,"3500":422.0},"79":{"350":116.0,"700":145.0,"875":166.0,"1400":251.0,"1750":299.0,"2100":348.0,"2625":420.0,"2800":442.0,"3500":642.0},"80":{"350":91.0,"700":114.0,"875":135.0,"1400":195.0,"1750":231.0,"2100":266.0,"2625":319.0,"2800":337.0,"3500":350.0},"81":{"350":135.0,"700":169.0,"875":201.0,"1400":296.0,"1750":353.0,"2100":409.0,"2625":495.0,"2800":524.0,"3500":756.0},"82":{"350":142.0,"700":178.0,"875":203.0,"1400":312.0,"1750":373.0,"2100":426.0,"2625":514.0,"2800":543.0,"3500":756.0},"83":{"350":138.0,"700":172.0,"875":202.0,"1400":297.0,"1750":354.0,"2100":410.0,"2625":496.0,"2800":524.0,"3500":845.0},"84":{"350":130.0,"700":162.0,"875":192.0,"1400":286.0,"1750":341.0,"2100":397.0,"2625":481.0,"2800":508.0,"3500":732.0},"85":{"350":128.0,"700":160.0,"875":181.0,"1400":272.0,"1750":322.0,"2100":370.0,"2625":447.0,"2800":470.0,"3500":675.0},"86":{"350":126.0,"700":157.0,"875":178.0,"1400":270.0,"1750":317.0,"2100":367.0,"2625":442.0,"2800":467.0,"3500":642.0},"87":{"350":134.0,"700":167.0,"875":188.0,"1400":292.0,"1750":345.0,"2100":401.0,"2625":488.0,"2800":516.0,"3500":675.0},"88":{"350":115.0,"700":144.0,"875":169.0,"1400":243.0,"1750":285.0,"2100":325.0,"2625":388.0,"2800":408.0,"3500":439.0},"89":{"350":111.0,"700":139.0,"875":164.0,"1400":238.0,"1750":282.0,"2100":324.0,"2625":389.0,"2800":410.0,"3500":494.0},"90":{"350":110.0,"700":138.0,"875":163.0,"1400":236.0,"1750":277.0,"2100":318.0,"2625":381.0,"2800":401.0,"3500":494.0},"91":{"350":108.0,"700":135.0,"875":152.0,"1400":233.0,"1750":275.0,"2100":316.0,"2625":379.0,"2800":400.0,"3500":451.0},"92":{"350":107.0,"700":134.0,"875":158.0,"1400":229.0,"1750":269.0,"2100":309.0,"2625":370.0,"2800":391.0,"3500":422.0},"93":{"350":107.0,"700":134.0,"875":158.0,"1400":229.0,"1750":269.0,"2100":309.0,"2625":370.0,"2800":391.0,"3500":422.0},"94":{"350":107.0,"700":134.0,"875":158.0,"1400":229.0,"1750":269.0,"2100":309.0,"2625":370.0,"2800":391.0,"3500":422.0},"95":{"350":107.0,"700":134.0,"875":158.0,"1400":229.0,"1750":269.0,"2100":309.0,"2625":370.0,"2800":391.0,"3500":422.0}}};
+
+const STEENBERGEN_RATES = [{"ldm":0.2,"NL1":40.3,"NL2":46.35,"BE1":53.4,"BE2":61.35,"BE3":72.8},{"ldm":0.4,"NL1":47.4,"NL2":54.45,"BE1":62.6,"BE2":72.1,"BE3":85.65},{"ldm":0.5,"NL1":51.5,"NL2":59.25,"BE1":67.2,"BE2":77.4,"BE3":91.85},{"ldm":0.6,"NL1":64.65,"NL2":74.6,"BE1":85.3,"BE2":97.8,"BE3":116.2},{"ldm":0.8,"NL1":77.7,"NL2":89.55,"BE1":103,"BE2":118.25,"BE3":140.25},{"ldm":1.0,"NL1":91.1,"NL2":105.25,"BE1":118.25,"BE2":136.3,"BE3":162.3},{"ldm":1.2,"NL1":106.85,"NL2":122.55,"BE1":137.55,"BE2":158.65,"BE3":187.65},{"ldm":1.5,"NL1":126.65,"NL2":145.5,"BE1":164.25,"BE2":188.95,"BE3":225.15},{"ldm":1.6,"NL1":133.05,"NL2":152.95,"BE1":173.8,"BE2":200.1,"BE3":237.95},{"ldm":2.0,"NL1":154.7,"NL2":177.8,"BE1":201.1,"BE2":231.4,"BE3":274.8},{"ldm":2.4,"NL1":176.5,"NL2":203.1,"BE1":229.45,"BE2":263.6,"BE3":314.25},{"ldm":2.5,"NL1":180.3,"NL2":207.15,"BE1":235,"BE2":269.8,"BE3":321.15},{"ldm":2.8,"NL1":192.45,"NL2":221.55,"BE1":251.5,"BE2":288.9,"BE3":343.85},{"ldm":3.0,"NL1":199.5,"NL2":229.55,"BE1":259.35,"BE2":297.85,"BE3":354.75},{"ldm":3.2,"NL1":205.85,"NL2":236.95,"BE1":271.05,"BE2":312,"BE3":370.85},{"ldm":3.5,"NL1":217.05,"NL2":249.4,"BE1":284.6,"BE2":327.1,"BE3":389.3},{"ldm":3.6,"NL1":220.35,"NL2":253.55,"BE1":290.9,"BE2":334.4,"BE3":398.8},{"ldm":4.0,"NL1":229.9,"NL2":264.35,"BE1":307.35,"BE2":353.4,"BE3":421.2},{"ldm":4.4,"NL1":242.95,"NL2":279.45,"BE1":329.4,"BE2":378.35,"BE3":450.45},{"ldm":4.5,"NL1":248.4,"NL2":285.5,"BE1":335.3,"BE2":385.65,"BE3":458.7},{"ldm":4.8,"NL1":256.1,"NL2":294.5,"BE1":350.1,"BE2":402.75,"BE3":478.45},{"ldm":5.0,"NL1":263.8,"NL2":303.4,"BE1":362,"BE2":415.9,"BE3":495.15}];
+
+const VAN_WIJK_RATES = [{"kg":660,"ldm":0.4,"A":135.0,"B":146.0,"C":157.0,"D":166.0,"E":179.0,"F":194.0,"G":205.0,"H":218.0,"I":232.0},{"kg":825,"ldm":0.5,"A":143.0,"B":155.0,"C":167.0,"D":177.0,"E":191.0,"F":205.0,"G":218.0,"H":232.0,"I":248.0},{"kg":990,"ldm":0.6,"A":151.0,"B":165.0,"C":177.0,"D":188.0,"E":203.0,"F":218.0,"G":232.0,"H":246.0,"I":263.0},{"kg":1320,"ldm":0.8,"A":167.0,"B":184.0,"C":197.0,"D":210.0,"E":226.0,"F":243.0,"G":259.0,"H":275.0,"I":294.0},{"kg":1650,"ldm":1.0,"A":184.0,"B":200.0,"C":218.0,"D":228.0,"E":249.0,"F":268.0,"G":286.0,"H":302.0,"I":325.0},{"kg":1980,"ldm":1.2,"A":199.0,"B":219.0,"C":236.0,"D":250.0,"E":272.0,"F":292.0,"G":312.0,"H":332.0,"I":357.0},{"kg":2475,"ldm":1.5,"A":224.0,"B":246.0,"C":265.0,"D":282.0,"E":305.0,"F":329.0,"G":351.0,"H":373.0,"I":403.0},{"kg":2640,"ldm":1.6,"A":233.0,"B":254.0,"C":274.0,"D":291.0,"E":316.0,"F":341.0,"G":365.0,"H":388.0,"I":417.0},{"kg":3300,"ldm":2.0,"A":265.0,"B":291.0,"C":313.0,"D":333.0,"E":361.0,"F":390.0,"G":416.0,"H":444.0,"I":479.0},{"kg":3960,"ldm":2.4,"A":296.0,"B":324.0,"C":350.0,"D":371.0,"E":406.0,"F":438.0,"G":469.0,"H":499.0,"I":540.0},{"kg":4125,"ldm":2.5,"A":304.0,"B":334.0,"C":361.0,"D":382.0,"E":416.0,"F":451.0,"G":482.0,"H":514.0,"I":555.0},{"kg":4620,"ldm":2.8,"A":326.0,"B":359.0,"C":388.0,"D":412.0,"E":451.0,"F":486.0,"G":520.0,"H":554.0,"I":599.0},{"kg":4950,"ldm":3.0,"A":342.0,"B":378.0,"C":408.0,"D":432.0,"E":472.0,"F":510.0,"G":545.0,"H":582.0,"I":631.0},{"kg":5280,"ldm":3.2,"A":359.0,"B":393.0,"C":426.0,"D":452.0,"E":492.0,"F":533.0,"G":572.0,"H":609.0,"I":659.0},{"kg":5775,"ldm":3.5,"A":378.0,"B":415.0,"C":448.0,"D":476.0,"E":519.0,"F":562.0,"G":604.0,"H":642.0,"I":696.0},{"kg":5940,"ldm":3.6,"A":385.0,"B":422.0,"C":458.0,"D":484.0,"E":530.0,"F":574.0,"G":616.0,"H":656.0,"I":710.0},{"kg":6600,"ldm":4.0,"A":414.0,"B":457.0,"C":495.0,"D":524.0,"E":574.0,"F":620.0,"G":666.0,"H":709.0,"I":770.0},{"kg":7260,"ldm":4.4,"A":444.0,"B":488.0,"C":531.0,"D":562.0,"E":615.0,"F":666.0,"G":715.0,"H":763.0,"I":828.0},{"kg":7425,"ldm":4.5,"A":452.0,"B":496.0,"C":540.0,"D":572.0,"E":627.0,"F":678.0,"G":729.0,"H":776.0,"I":843.0},{"kg":7920,"ldm":4.8,"A":473.0,"B":521.0,"C":567.0,"D":600.0,"E":657.0,"F":712.0,"G":767.0,"H":817.0,"I":886.0},{"kg":8250,"ldm":5.0,"A":488.0,"B":538.0,"C":584.0,"D":618.0,"E":678.0,"F":735.0,"G":792.0,"H":843.0,"I":916.0},{"kg":8580,"ldm":5.2,"A":501.0,"B":552.0,"C":599.0,"D":635.0,"E":698.0,"F":755.0,"G":812.0,"H":867.0,"I":942.0},{"kg":9075,"ldm":5.5,"A":516.0,"B":570.0,"C":621.0,"D":659.0,"E":724.0,"F":785.0,"G":845.0,"H":902.0,"I":981.0},{"kg":9240,"ldm":5.6,"A":523.0,"B":578.0,"C":629.0,"D":665.0,"E":731.0,"F":795.0,"G":856.0,"H":914.0,"I":994.0},{"kg":9900,"ldm":6.0,"A":544.0,"B":602.0,"C":656.0,"D":697.0,"E":766.0,"F":833.0,"G":897.0,"H":958.0,"I":1044.0},{"kg":10560,"ldm":6.4,"A":561.0,"B":621.0,"C":678.0,"D":721.0,"E":793.0,"F":863.0,"G":930.0,"H":995.0,"I":1085.0},{"kg":10725,"ldm":6.5,"A":564.0,"B":627.0,"C":683.0,"D":726.0,"E":801.0,"F":872.0,"G":940.0,"H":1005.0,"I":1097.0}];
+
+/* ============================================================
+   DIESELTOESLAG HISTORISCHE DATA
+   ============================================================
+   ➜ HIER voeg je nieuwe maanden toe.
+   Formaat: "JJJJ-MM": percentage (getal, geen %-teken)
+   De tool pakt automatisch de meest recente periode als standaard.
+   ============================================================ */
+const FUEL_SURCHARGE_HISTORY = {
+  'KLG Europe': {
+    '2026-01': 15,
+    '2026-02': 17,
+    '2026-03': 22,
+    '2026-04': 30
+    // Voeg hier nieuwe maanden toe, bijv: '2026-05': 28
+  },
+  'Steenbergen': {
+    '2026-01': 14,
+    '2026-02': 16,
+    '2026-03': 21,
+    '2026-04': 28
+  },
+  'E. van Wijk Logistics': {
+    '2026-01': 15,
+    '2026-02': 17,
+    '2026-03': 23,
+    '2026-04': 29
+  },
+  // TODO: vervangen door echte Kuijf brandstoftoeslaghistorie zodra beschikbaar.
+  // Tijdelijk gelijkgesteld aan Steenbergen als conservatieve placeholder.
+  'Kuijf Logistics': {
+    '2026-01': 14,
+    '2026-02': 16,
+    '2026-03': 21,
+    '2026-04': 28
+  }
+};
+
+/* ============================================================
+   OVERIGE CONSTANTEN
+   ============================================================ */
+const COUNTRY_NAMES = {
+  NL: 'Nederland 🇳🇱', BE: 'België 🇧🇪', LU: 'Luxemburg 🇱🇺',
+  DE: 'Duitsland 🇩🇪', AT: 'Oostenrijk 🇦🇹', FR: 'Frankrijk 🇫🇷',
+  CH: 'Zwitserland 🇨🇭', DK: 'Denemarken 🇩🇰', SE: 'Zweden 🇸🇪',
+  NO: 'Noorwegen 🇳🇴', PL: 'Polen 🇵🇱', CZ: 'Tsjechië 🇨🇿',
+  SK: 'Slowakije 🇸🇰', HU: 'Hongarije 🇭🇺', SI: 'Slovenië 🇸🇮',
+  HR: 'Kroatië 🇭🇷', RO: 'Roemenië 🇷🇴', ES: 'Spanje 🇪🇸',
+  PT: 'Portugal 🇵🇹', IT: 'Italië 🇮🇹'
+};
+
+// Landen waarvoor automatische pricing niet beschikbaar is — KLG op aanvraag als fallback
+const EU_FALLBACK_COUNTRIES = new Set(['CH','DK','SE','NO','PL','CZ','SK','HU','SI','HR','RO','ES','PT','IT']);
+
+function isEuropeanFallbackCountry(code) {
+  return EU_FALLBACK_COUNTRIES.has(code);
+}
+
+const PC_HINTS = {
+  NL: 'NL: 4 cijfers (bijv. 3454)',
+  BE: 'BE: 4 cijfers (bijv. 2000)',
+  LU: 'LU: 4 cijfers (bijv. 1528)',
+  DE: 'DE: 5 cijfers (bijv. 80331)',
+  AT: 'AT: 4 cijfers (bijv. 1010)',
+  FR: 'FR: 5 cijfers (bijv. 75001)',
+  CH: 'CH: 4 cijfers (bijv. 8001)',
+  DK: 'DK: 4 cijfers (bijv. 1050)',
+  SE: 'SE: 5 cijfers (bijv. 11120)',
+  NO: 'NO: 4 cijfers (bijv. 0150)',
+  PL: 'PL: 5 cijfers (bijv. 00001)',
+  CZ: 'CZ: 5 cijfers (bijv. 11000)',
+  SK: 'SK: 5 cijfers (bijv. 81101)',
+  HU: 'HU: 4 cijfers (bijv. 1011)',
+  SI: 'SI: 4 cijfers (bijv. 1000)',
+  HR: 'HR: 5 cijfers (bijv. 10000)',
+  RO: 'RO: 6 cijfers (bijv. 010011)',
+  ES: 'ES: 5 cijfers (bijv. 28001)',
+  PT: 'PT: 4 cijfers (bijv. 1000)',
+  IT: 'IT: 5 cijfers (bijv. 00118)'
+};
+
+const CARRIER_COLORS = {
+  'KLG Europe':            'var(--color-klg)',
+  'Steenbergen':           'var(--color-steenbergen)',
+  'E. van Wijk Logistics': 'var(--color-vanwijk)',
+  'Kuijf Logistics':       'var(--color-kuijf)'
+};
+
+/* ============================================================
+   DIESELTOESLAG ENGINE
+   ============================================================ */
+
+/**
+ * Geeft alle unieke perioden over alle vervoerders, gesorteerd.
+ */
+function getAllPeriods() {
+  const set = new Set();
+  for (const carrier of Object.values(FUEL_SURCHARGE_HISTORY)) {
+    for (const period of Object.keys(carrier)) set.add(period);
+  }
+  return Array.from(set).sort();
+}
+
+/**
+ * Geeft het brandstoftoeslag-percentage voor een vervoerder en periode.
+ * Als de exacte periode niet bestaat, gebruikt het de meest recente voorgaande.
+ * @returns {{ pct: number, usedPeriod: string, isFallback: boolean }}
+ */
+function getFuelSurcharge(carrier, period) {
+  const history = FUEL_SURCHARGE_HISTORY[carrier];
+  if (!history) return { pct: 0, usedPeriod: period, isFallback: false };
+
+  if (history[period] !== undefined) {
+    return { pct: history[period], usedPeriod: period, isFallback: false };
+  }
+
+  // Zoek meest recente beschikbare voorgaande periode
+  const available = Object.keys(history).sort();
+  const earlier = available.filter(p => p < period);
+  if (earlier.length > 0) {
+    const fallback = earlier[earlier.length - 1];
+    return { pct: history[fallback], usedPeriod: fallback, isFallback: true };
+  }
+
+  return { pct: 0, usedPeriod: period, isFallback: true };
+}
+
+/**
+ * Berekent de eindprijs incl. dieseltoeslag op basis van basisprijs en periode.
+ * @returns {{ basePrice, surchargeInfo, surchargeAmount, finalPrice }}
+ */
+function calculateQuoteWithSurcharge(basePrice, carrier, period) {
+  const surchargeInfo = getFuelSurcharge(carrier, period);
+  const surchargeAmount = basePrice * (surchargeInfo.pct / 100);
+  const finalPrice = basePrice + surchargeAmount;
+  return {
+    basePrice,
+    surchargeInfo,
+    surchargeAmount,
+    finalPrice
+  };
+}
+
+/* ============================================================
+   PERIODE SELECTOR UI
+   ============================================================ */
+
+function initPeriodSelector() {
+  const select = document.getElementById('period-select');
+  const periods = getAllPeriods();
+  select.innerHTML = '';
+
+  periods.forEach(p => {
+    const opt = document.createElement('option');
+    opt.value = p;
+    opt.textContent = formatPeriodLabel(p);
+    select.appendChild(opt);
+  });
+
+  // Selecteer standaard de meest recente periode
+  if (periods.length > 0) {
+    select.value = periods[periods.length - 1];
+  }
+
+  onPeriodChange();
+}
+
+function formatPeriodLabel(period) {
+  const [y, m] = period.split('-');
+  const months = ['jan', 'feb', 'mrt', 'apr', 'mei', 'jun', 'jul', 'aug', 'sep', 'okt', 'nov', 'dec'];
+  return `${months[parseInt(m, 10) - 1]} ${y}`;
+}
+
+function getSelectedPeriod() {
+  return document.getElementById('period-select').value;
+}
+
+function onPeriodChange() {
+  const period = getSelectedPeriod();
+  const periods = getAllPeriods();
+  const idx = periods.indexOf(period);
+
+  const badge = document.getElementById('trend-badge');
+  const note = document.getElementById('period-label-note');
+
+  badge.className = 'trend-badge';
+  badge.textContent = '—';
+  note.textContent = '';
+
+  if (idx > 0) {
+    const prevPeriod = periods[idx - 1];
+    // Gemiddelde toeslag voor vergelijking
+    const carriers = Object.keys(FUEL_SURCHARGE_HISTORY);
+    const avgCurr = carriers.reduce((s, c) => {
+      const cur = FUEL_SURCHARGE_HISTORY[c][period];
+      return cur !== undefined ? s + cur : s;
+    }, 0) / carriers.length;
+    const avgPrev = carriers.reduce((s, c) => {
+      const pr = FUEL_SURCHARGE_HISTORY[c][prevPeriod];
+      return pr !== undefined ? s + pr : s;
+    }, 0) / carriers.length;
+
+    const diff = avgCurr - avgPrev;
+    if (Math.abs(diff) < 0.5) {
+      badge.classList.add('trend-same');
+      badge.textContent = `= t.o.v. ${formatPeriodLabel(prevPeriod)}`;
+    } else if (diff > 0) {
+      badge.classList.add('trend-up');
+      badge.textContent = `▲ +${diff.toFixed(1)}pp t.o.v. ${formatPeriodLabel(prevPeriod)}`;
+    } else {
+      badge.classList.add('trend-down');
+      badge.textContent = `▼ ${diff.toFixed(1)}pp t.o.v. ${formatPeriodLabel(prevPeriod)}`;
+    }
+  } else {
+    badge.classList.add('trend-same');
+    badge.textContent = 'Vroegste periode';
+  }
+
+  note.textContent = `Dieseltoeslag ingesteld voor ${formatPeriodLabel(period)}`;
+}
+
+/* ============================================================
+   INPUT PARSING & VALIDATIE
+   ============================================================ */
+
+function onCountryChange() {
+  const c = document.getElementById('country').value;
+  document.getElementById('pc-hint').textContent = c ? PC_HINTS[c] : 'Voer eerst een land in';
+}
+
+function sanitizePostcode() {
+  const country = document.getElementById('country').value;
+  const input = document.getElementById('postcode');
+  if (country === 'NL') {
+    input.value = input.value.toUpperCase().replace(/[^0-9A-Z ]/g, '');
+  } else {
+    input.value = input.value.replace(/[^0-9A-Z ]/gi, '').toUpperCase();
+  }
+}
+
+/**
+ * Normaliseert de postcode voor intern gebruik.
+ * NL → 4 digits, overige landen → alleen digits
+ */
+function normalizePostcode(country, raw) {
+  const cleaned = (raw || '').toUpperCase().replace(/\s+/g, '').trim();
+  if (!cleaned) return '';
+  if (country === 'NL') {
+    const m = cleaned.match(/^(\d{4})/);
+    return m ? m[1] : '';
+  }
+  return cleaned.replace(/\D/g, '');
+}
+
+/**
+ * Berekent fysieke metrics op basis van formulierinvoer.
+ * @throws {Error} bij ongeldige invoer
+ */
+function computeMetrics() {
+  const pallets = parseInt(document.getElementById('pallets').value, 10);
+  const weight = parseFloat(document.getElementById('weight').value);
+  const length = parseFloat(document.getElementById('length').value);
+  const width = parseFloat(document.getElementById('width').value);
+  const height = parseFloat(document.getElementById('height').value);
+
+  if (Number.isNaN(pallets) || pallets < 1) throw new Error('Voer een geldig aantal pallets in (minimaal 1).');
+  if (Number.isNaN(weight) || weight <= 0) throw new Error('Voer een geldig totaalgewicht in (> 0 kg).');
+  if (Number.isNaN(length) || length <= 0) throw new Error('Voer een geldige lengte in (> 0 cm).');
+  if (Number.isNaN(width) || width <= 0) throw new Error('Voer een geldige breedte in (> 0 cm).');
+  if (Number.isNaN(height) || height <= 0) throw new Error('Voer een geldige hoogte in (> 0 cm).');
+
+  const ldmPerPallet = (length / 100) * (width / 100) / 2.4; // 2,4m standaard trailer breedte
+  const totalLdm = ldmPerPallet * pallets;
+  const m3PerPallet = (length * width * height) / 1_000_000;
+  const totalM3 = m3PerPallet * pallets;
+
+  return { pallets, weight, length, width, height, ldmPerPallet, totalLdm, totalM3 };
+}
+
+/* ============================================================
+   ZONE BEPALEN – per vervoerder
+   ============================================================ */
+
+function getSteenbergenZone(country, postcode) {
+  const pc = parseInt(postcode.substring(0, 4), 10);
+  if (Number.isNaN(pc)) return null;
+  if (country === 'NL') {
+    if (pc >= 1000 && pc <= 4999) return 'NL1';
+    if (pc >= 5000 && pc <= 9999) return 'NL2';
+  }
+  if (country === 'BE') {
+    if ((pc >= 2000 && pc <= 2999) || (pc >= 9000 && pc <= 9999)) return 'BE1';
+    if ((pc >= 1000 && pc <= 1999) || (pc >= 3000 && pc <= 6599) || (pc >= 7000 && pc <= 8999)) return 'BE2';
+    if (pc >= 6600 && pc <= 6999) return 'BE3';
+  }
+  if (country === 'LU') return 'BE3';
+  return null;
+}
+
+function getVanWijkZone(postcode) {
+  const pc5 = postcode.padStart(5, '0');
+  const p2 = parseInt(pc5.substring(0, 2), 10);
+  const p3 = parseInt(pc5.substring(0, 3), 10);
+
+  const rules = [
+    { type: 'range3', from: 60, to: 64, zone: 'F' },
+    { type: 'range3', from: 65, to: 69, zone: 'G' },
+    { type: 'range3', from: 160, to: 163, zone: 'I' },
+    { type: 'range3', from: 165, to: 169, zone: 'H' },
+    { type: 'range3', from: 170, to: 172, zone: 'H' },
+    { type: 'range3', from: 173, to: 175, zone: 'I' },
+    { type: 'range3', from: 180, to: 182, zone: 'H' },
+    { type: 'range3', from: 183, to: 186, zone: 'I' },
+    { type: 'range3', from: 230, to: 236, zone: 'D' },
+    { type: 'single3', values: [237], zone: 'F' },
+    { type: 'range3', from: 238, to: 239, zone: 'E' },
+    { type: 'range3', from: 240, to: 244, zone: 'E' },
+    { type: 'single3', values: [245, 246], zone: 'D' },
+    { type: 'range3', from: 247, to: 249, zone: 'F' },
+    { type: 'range3', from: 250, to: 254, zone: 'D' },
+    { type: 'single3', values: [255, 256], zone: 'E' },
+    { type: 'range3', from: 257, to: 259, zone: 'F' },
+    { type: 'range3', from: 290, to: 293, zone: 'D' },
+    { type: 'single3', values: [294, 295], zone: 'E' },
+    { type: 'range3', from: 296, to: 299, zone: 'D' },
+    { type: 'range3', from: 590, to: 597, zone: 'B' },
+    { type: 'single3', values: [598, 599], zone: 'C' },
+    { type: 'range3', from: 860, to: 867, zone: 'G' },
+    { type: 'single3', values: [868, 869], zone: 'H' }
+  ];
+
+  for (const rule of rules) {
+    if (rule.type === 'range3' && p3 >= rule.from && p3 <= rule.to) return rule.zone;
+    if (rule.type === 'single3' && rule.values.includes(p3)) return rule.zone;
+  }
+
+  const map2 = {
+    1:'I', 2:'I', 3:'I', 4:'H', 7:'G', 8:'G', 9:'H', 10:'G', 12:'G', 13:'G', 14:'G', 15:'H',
+    19:'G', 20:'D', 21:'D', 22:'D', 26:'C', 27:'D', 28:'C', 30:'D', 31:'D', 32:'C', 33:'C',
+    34:'D', 35:'D', 36:'D', 37:'D', 38:'D', 39:'E', 40:'A', 41:'A', 42:'A', 44:'A', 45:'A',
+    46:'A', 47:'A', 48:'A', 49:'B', 50:'A', 51:'B', 52:'A', 53:'B', 54:'C', 55:'D', 56:'C',
+    57:'B', 58:'B', 60:'D', 61:'D', 63:'D', 64:'D', 65:'D', 66:'D', 67:'D', 68:'D', 69:'D',
+    70:'E', 71:'E', 72:'F', 73:'E', 74:'E', 75:'F', 76:'E', 77:'F', 78:'G', 79:'G', 80:'H',
+    81:'H', 82:'H', 83:'I', 84:'I', 85:'H', 87:'H', 88:'G', 89:'G', 90:'F', 91:'F', 92:'H',
+    93:'H', 94:'I', 95:'H', 96:'H', 97:'E', 98:'E', 99:'E'
+  };
+  return map2[p2] || null;
+}
+
+/* ============================================================
+   BASISQUOTE PER VERVOERDER (exclusief dieseltoeslag)
+   ============================================================ */
+
+function getKLGBaseQuote(country, postcode, metrics) {
+  if (!['DE', 'AT', 'FR'].includes(country)) return null;
+  const prefix = postcode.substring(0, 2).padStart(2, '0');
+  const countryRates = KLG_RATES[country];
+  if (!countryRates || !countryRates[prefix]) return null;
+
+  const chargeableWeight = Math.max(metrics.weight, metrics.totalLdm * 1750);
+  const tiers = Object.keys(countryRates[prefix]).map(Number).sort((a, b) => a - b);
+  const tier = tiers.find(t => chargeableWeight <= t);
+  if (!tier) return null;
+
+  const price = countryRates[prefix][String(tier)];
+  if (price === null || price === undefined) return null;
+
+  return {
+    carrier: 'KLG Europe',
+    country, postcode,
+    basePrice: price,
+    chargeableWeight,
+    tierLabel: `≤ ${tier} kg`,
+    zone: `${prefix}xx`,
+    basis: `KLG postcodezone ${prefix}xx`,
+    coverage: 'DE / AT / FR',
+    note: 'Excl. duurzaamheidstoeslag en BTW. Bij lengte > 2,4 m: lengtetoeslag van toepassing.',
+    warning: country === 'FR' && ['20', '75'].includes(prefix) ? 'Corsica (20) en Paris (75) niet beschikbaar via KLG in deze tool.' : null
+  };
+}
+
+function getSteenbergenBaseQuote(country, postcode, metrics) {
+  const zone = getSteenbergenZone(country, postcode);
+  if (!zone) return null;
+
+  const chargeableWeight = Math.max(metrics.weight, metrics.totalLdm * 1750, metrics.totalM3 * 330);
+  const row = STEENBERGEN_RATES.find(r => metrics.totalLdm <= r.ldm);
+  if (!row) return null;
+
+  const price = row[zone];
+  if (price === null || price === undefined) return null;
+
+  return {
+    carrier: 'Steenbergen',
+    country, postcode,
+    basePrice: price,
+    chargeableWeight,
+    tierLabel: `≤ ${row.ldm.toFixed(1).replace('.', ',')} ldm`,
+    zone,
+    basis: `Steenbergen zone ${zone}`,
+    coverage: 'NL / BE / LU',
+    note: 'Excl. BTW. Betalend gewicht = max(gewicht, ldm×1750, m³×330).',
+    warning: null
+  };
+}
+
+function getVanWijkBaseQuote(country, postcode, metrics) {
+  if (country !== 'DE') return null;
+  const zone = getVanWijkZone(postcode);
+  if (!zone) return null;
+
+  const chargeableWeight = Math.max(metrics.weight, metrics.totalLdm * 1650);
+  const row = VAN_WIJK_RATES.find(r => chargeableWeight <= r.kg);
+  if (!row) return null;
+
+  const price = row[zone];
+  if (price === null || price === undefined) return null;
+
+  return {
+    carrier: 'E. van Wijk Logistics',
+    country, postcode,
+    basePrice: price,
+    chargeableWeight,
+    tierLabel: `≤ ${row.kg} kg / ≤ ${row.ldm.toFixed(1).replace('.', ',')} ldm`,
+    zone: `Zone ${zone}`,
+    basis: `Van Wijk zone ${zone}`,
+    coverage: 'DE',
+    note: 'Excl. BTW. Tarieven geldig t/m 30-06-2026.',
+    warning: null
+  };
+}
+
+/* ============================================================
+   KUIJF LOGISTICS TARIEFDATA
+   Bron: Kuijf distributie-staffels (Benelux). Tarieven indicatief.
+   Duitsland: altijd op aanvraag (PDF-bron).
+   LDM >= 4.0: LTL/FTL, indicatief/op aanvraag.
+   Excl. brandstoftoeslag en BTW.
+   TODO: vervang indicatieve tarieven door definitieve Kuijf-offerte zodra beschikbaar.
+   ============================================================ */
+
+const KUIJF_RATES = [
+  { ldm: 0.4,  maxKg: 400,  UI: 42.50,  Z1: 52.50,  Z2: 67.50,  Z3: 87.50,  kooiaap: 0 },
+  { ldm: 0.5,  maxKg: 500,  UI: 50.00,  Z1: 62.50,  Z2: 80.00,  Z3: 105.00, kooiaap: 0 },
+  { ldm: 0.8,  maxKg: 800,  UI: 65.00,  Z1: 82.50,  Z2: 107.50, Z3: 142.50, kooiaap: 0 },
+  { ldm: 1.0,  maxKg: 1000, UI: 77.50,  Z1: 97.50,  Z2: 127.50, Z3: 167.50, kooiaap: 0 },
+  { ldm: 1.2,  maxKg: 1200, UI: 90.00,  Z1: 112.50, Z2: 147.50, Z3: 192.50, kooiaap: 0 },
+  { ldm: 1.5,  maxKg: 1500, UI: 107.50, Z1: 135.00, Z2: 177.50, Z3: 232.50, kooiaap: 0 },
+  { ldm: 1.6,  maxKg: 1600, UI: 112.50, Z1: 142.50, Z2: 185.00, Z3: 242.50, kooiaap: 0 },
+  { ldm: 2.0,  maxKg: 2000, UI: 135.00, Z1: 170.00, Z2: 222.50, Z3: 292.50, kooiaap: 0 },
+  { ldm: 2.4,  maxKg: 2400, UI: 155.00, Z1: 195.00, Z2: 257.50, Z3: 337.50, kooiaap: 150 },
+  { ldm: 2.5,  maxKg: 2500, UI: 162.50, Z1: 202.50, Z2: 267.50, Z3: 350.00, kooiaap: 150 },
+  { ldm: 2.8,  maxKg: 2800, UI: 177.50, Z1: 222.50, Z2: 292.50, Z3: 382.50, kooiaap: 150 },
+  { ldm: 3.0,  maxKg: 3000, UI: 187.50, Z1: 237.50, Z2: 312.50, Z3: 410.00, kooiaap: 150 },
+  { ldm: 3.2,  maxKg: 3200, UI: 197.50, Z1: 250.00, Z2: 330.00, Z3: 432.50, kooiaap: 150 },
+  { ldm: 4.0,  maxKg: 9999, UI: null, Z1: null, Z2: null, Z3: null, kooiaap: 150, onRequest: true },
+  { ldm: 6.0,  maxKg: 9999, UI: null, Z1: null, Z2: null, Z3: null, kooiaap: 150, onRequest: true },
+  { ldm: 9.0,  maxKg: 9999, UI: null, Z1: null, Z2: null, Z3: null, kooiaap: 150, onRequest: true },
+  { ldm: 12.0, maxKg: 9999, UI: null, Z1: null, Z2: null, Z3: null, kooiaap: 150, onRequest: true },
+  { ldm: 13.6, maxKg: 9999, UI: null, Z1: null, Z2: null, Z3: null, kooiaap: 150, onRequest: true }
+];
+
+// NL zone-heuristiek — conservatief, onbekend => null (handmatige check).
+function getKuijfNLZone(postcode) {
+  const pc = parseInt(postcode.substring(0, 4), 10);
+  if (Number.isNaN(pc)) return null;
+  if (pc >= 3400 && pc <= 3999) return 'UI';
+  if ((pc >= 1000 && pc <= 1299) || (pc >= 1300 && pc <= 1499) ||
+      (pc >= 1800 && pc <= 2299) || (pc >= 2300 && pc <= 2999) ||
+      (pc >= 3000 && pc <= 3399) || (pc >= 4000 && pc <= 4299) ||
+      (pc >= 6700 && pc <= 6999) || (pc >= 7300 && pc <= 7399)) return 'Z1';
+  if ((pc >= 4300 && pc <= 4999) || (pc >= 5000 && pc <= 5999) ||
+      (pc >= 6000 && pc <= 6699) || (pc >= 7400 && pc <= 7999) ||
+      (pc >= 8000 && pc <= 8299)) return 'Z2';
+  if ((pc >= 1500 && pc <= 1799) || (pc >= 8300 && pc <= 9999)) return 'Z3';
+  return null;
+}
+
+// BE zone-heuristiek — beperkt, conservatief.
+function getKuijfBEZone(postcode) {
+  const pc = parseInt(postcode.substring(0, 4), 10);
+  if (Number.isNaN(pc)) return null;
+  if ((pc >= 1000 && pc <= 1299) || (pc >= 2000 && pc <= 2999)) return 'Z1';
+  if ((pc >= 3000 && pc <= 3999) || (pc >= 9000 && pc <= 9999)) return 'Z2';
+  return null;
+}
+
+function kuijfRoundLdm(ldm) {
+  return KUIJF_RATES.find(r => r.ldm >= ldm)?.ldm || KUIJF_RATES[KUIJF_RATES.length - 1].ldm;
+}
+
+function getKuijfBaseQuote(country, postcode, metrics) {
+  if (country === 'DE') {
+    return {
+      carrier: 'Kuijf Logistics', country, postcode,
+      basePrice: null, chargeableWeight: metrics.weight,
+      tierLabel: 'Op aanvraag', zone: 'DE', basis: 'Kuijf (DE: op aanvraag)',
+      coverage: 'NL / BE / LU', note: 'Duitsland wordt door Kuijf op aanvraag uitgevoerd.',
+      warning: 'Duitsland: tarief op aanvraag', kooiaapToeslag: 0,
+      isOnRequest: true, requiresManualReview: true, recommendationEligible: true
+    };
+  }
+  if (!['NL', 'BE', 'LU'].includes(country)) return null;
+
+  let zone = null;
+  if (country === 'NL') zone = getKuijfNLZone(postcode);
+  else if (country === 'BE') zone = getKuijfBEZone(postcode);
+  else if (country === 'LU') zone = 'Z2';
+
+  if (!zone) {
+    return {
+      carrier: 'Kuijf Logistics', country, postcode,
+      basePrice: null, chargeableWeight: metrics.weight,
+      tierLabel: 'Handmatige check', zone: 'Onbekend',
+      basis: 'Kuijf (zone niet bepaalbaar)', coverage: 'NL / BE / LU',
+      note: 'Postcode-zone niet automatisch bepaalbaar. Neem contact op met Kuijf.',
+      warning: 'Zone onbekend voor dit postcodebereik', kooiaapToeslag: 0,
+      isOnRequest: false, requiresManualReview: true, recommendationEligible: true
+    };
+  }
+
+  const chargeableWeight = Math.max(metrics.weight, metrics.totalLdm * 1650);
+  const roundedLdm = kuijfRoundLdm(metrics.totalLdm);
+  const row = KUIJF_RATES.find(r => r.ldm >= roundedLdm);
+
+  if (!row || row.onRequest || row[zone] === null || row[zone] === undefined) {
+    return {
+      carrier: 'Kuijf Logistics', country, postcode,
+      basePrice: null, chargeableWeight,
+      tierLabel: row ? '>= 4,0 ldm op aanvraag' : 'Buiten staffel', zone,
+      basis: 'Kuijf zone ' + zone + ' (LTL/FTL)', coverage: 'NL / BE / LU',
+      note: 'Zendingen >= 4,0 ldm zijn LTL/FTL en worden op aanvraag behandeld.',
+      warning: 'LTL/FTL: op aanvraag', kooiaapToeslag: row?.kooiaap || 150,
+      isOnRequest: true, requiresManualReview: true, recommendationEligible: true
+    };
+  }
+
+  let effectiveRow = row;
+  if (chargeableWeight > row.maxKg) {
+    const heavier = KUIJF_RATES.find(r => r.ldm > row.ldm && !r.onRequest && r[zone] !== null && chargeableWeight <= r.maxKg);
+    if (heavier) { effectiveRow = heavier; }
+    else {
+      return {
+        carrier: 'Kuijf Logistics', country, postcode,
+        basePrice: null, chargeableWeight,
+        tierLabel: 'Op aanvraag (gewicht)', zone,
+        basis: 'Kuijf zone ' + zone, coverage: 'NL / BE / LU',
+        note: 'Betalend gewicht overschrijdt de staffelgrens. Kuijf op aanvraag.',
+        warning: 'Gewicht boven staffelgrens', kooiaapToeslag: 0,
+        isOnRequest: true, requiresManualReview: true, recommendationEligible: true
+      };
+    }
+  }
+
+  return {
+    carrier: 'Kuijf Logistics', country, postcode,
+    basePrice: effectiveRow[zone], chargeableWeight,
+    tierLabel: '<= ' + effectiveRow.ldm.toFixed(1).replace('.', ',') + ' ldm / ' + effectiveRow.maxKg + ' kg',
+    zone, basis: 'Kuijf zone ' + zone, coverage: 'NL / BE / LU',
+    note: 'Excl. brandstoftoeslag en BTW. Staffel naar boven afgerond.',
+    warning: effectiveRow.kooiaap > 0 ? 'Kooiaaptoeslag EUR ' + effectiveRow.kooiaap + ' mogelijk van toepassing' : null,
+    kooiaapToeslag: effectiveRow.kooiaap || 0,
+    isOnRequest: false, requiresManualReview: false, recommendationEligible: true
+  };
+}
+
+function getFallbackEuropeanQuote(country, postcode, metrics) {
+  if (!isEuropeanFallbackCountry(country)) return null;
+  return {
+    carrier: 'KLG Europe', country, postcode,
+    basePrice: null,
+    chargeableWeight: Math.max(metrics.weight, metrics.totalLdm * 1750),
+    tierLabel: 'Op aanvraag', zone: country,
+    basis: 'KLG Europe op aanvraag',
+    coverage: 'EU (op aanvraag)',
+    note: 'Automatische pricing niet beschikbaar. Neem contact op met KLG Europe voor offerte.',
+    warning: 'Alleen op aanvraag', kooiaapToeslag: 0,
+    isOnRequest: true, requiresManualReview: true, recommendationEligible: false
+  };
+}
+
+/* ============================================================
+   VOLLEDIGE QUOTE SAMENSTELLEN (basis + toeslag)
+   ============================================================ */
+
+function buildFullQuote(baseQuote, period) {
+  if (!baseQuote) return null;
+  if (baseQuote.basePrice === null) {
+    return {
+      ...baseQuote,
+      surchargeInfo: { pct: 0, usedPeriod: period, isFallback: false },
+      surchargeAmount: 0,
+      finalPrice: null,
+      period
+    };
+  }
+  const surcharge = calculateQuoteWithSurcharge(baseQuote.basePrice, baseQuote.carrier, period);
+  return { ...baseQuote, ...surcharge, period };
+}
+
+/* ============================================================
+   ERROR / SUCCES UI HELPERS
+   ============================================================ */
+
+function showError(msg) {
+  const el = document.getElementById('error-msg');
+  el.textContent = msg;
+  el.style.display = 'block';
+  document.getElementById('result').style.display = 'none';
+  document.getElementById('viz-section').style.display = 'none';
+}
+
+function hideError() {
+  document.getElementById('error-msg').style.display = 'none';
+}
+
+function formatMoney(value) {
+  return Number(value).toLocaleString('nl-NL', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+/* ============================================================
+   QUOTE RENDERING — toont ALTIJD alle 3 carriers
+   Beschikbare gesorteerd op eindprijs, daarna niet-beschikbaar
+   ============================================================ */
+
+// Alle bekende carriers (voor "niet beschikbaar" weergave)
+const ALL_CARRIERS = [
+  { name: 'KLG Europe',            coverage: 'DE / AT / FR',  reason: 'KLG Europe dekt alleen Duitsland, Oostenrijk en Frankrijk.' },
+  { name: 'Steenbergen',           coverage: 'NL / BE / LU',  reason: 'Steenbergen dekt alleen Nederland, België en Luxemburg.' },
+  { name: 'E. van Wijk Logistics', coverage: 'DE',            reason: 'E. van Wijk Logistics dekt alleen Duitsland.' },
+  { name: 'Kuijf Logistics',       coverage: 'NL / BE / LU',  reason: 'Kuijf Logistics dekt Benelux. Duitsland op aanvraag.' }
+];
+
+function renderQuotes(decoratedQuotes, reco) {
+  const container = document.getElementById('quote-list');
+  const availableNames = new Set(decoratedQuotes.map(q => q.carrier));
+  const unavailable = ALL_CARRIERS.filter(c => !availableNames.has(c.name));
+
+  let html = '';
+
+  decoratedQuotes.forEach((q, i) => {
+    const dotColor = CARRIER_COLORS[q.carrier] || 'var(--muted2)';
+    const hasPrice = q.basePrice !== null;
+    const isOnReq = q.isOnRequest || q._overrideOnRequest;
+    const isManual = q.requiresManualReview && !q.isOnRequest;
+
+    // Badge tekst en klasse
+    let badgeClass, badgeText;
+    if (q.isRecommended && q.isCheapest) {
+      badgeClass = 'badge-best'; badgeText = '★ Aanbevolen & goedkoopst';
+    } else if (q.isRecommended) {
+      badgeClass = 'badge-recommended'; badgeText = '★ Aanbevolen';
+    } else if (q.isCheapest && hasPrice) {
+      badgeClass = 'badge-rank'; badgeText = '€ Goedkoopst';
+    } else if (isOnReq) {
+      badgeClass = 'badge-onrequest'; badgeText = 'Op aanvraag';
+    } else if (isManual) {
+      badgeClass = 'badge-manual'; badgeText = 'Handmatige check';
+    } else if (q.isSuppressedByBusinessRule) {
+      badgeClass = 'badge-suppressed'; badgeText = 'Niet voorkeur (business rule)';
+    } else {
+      badgeClass = 'badge-rank'; badgeText = '#' + (i + 1);
+    }
+
+    const cardClass = q.isRecommended ? 'quote top' : (isOnReq || isManual ? 'quote unavailable' : 'quote');
+    const priceDisplay = hasPrice ? '€ ' + formatMoney(q.finalPrice) : (isOnReq ? 'Op aanvraag' : 'Handmatige check');
+    const priceColor = q.isRecommended && hasPrice ? 'best' : (!hasPrice ? 'style="color:var(--muted2);font-size:15px;"' : '');
+
+    const surchargeLabel = hasPrice
+      ? (q.surchargeInfo.isFallback
+          ? q.surchargeInfo.pct + '% <span class="fallback-period-note">⚠ Fallback: ' + formatPeriodLabel(q.surchargeInfo.usedPeriod) + '</span>'
+          : q.surchargeInfo.pct + '%')
+      : '—';
+
+    // Kooiaap pill op quote niveau
+    const kooiaapPill = q.kooiaapToeslag > 0
+      ? '<span class="pill warn">🪤 Kooiaap +EUR ' + q.kooiaapToeslag + '</span>'
+      : '';
+
+    // Business rule suppressed note
+    const suppressedNote = q.isSuppressedByBusinessRule
+      ? '<div style="font-size:12px;color:var(--orange);margin-top:6px">⚡ Niet als voorkeur voor ' + (reco?.businessRuleLabel || 'dit scenario') + '</div>'
+      : '';
+
+    // On request / manual: simpelere kaart
+    if (!hasPrice) {
+      html += `
+        <div class="${cardClass}">
+          <div class="quote-header">
+            <div class="quote-carrier-row">
+              <div class="carrier-dot" style="background:${dotColor};opacity:${isOnReq ? '0.5' : '0.8'}"></div>
+              <div class="quote-carrier-name">${q.carrier}</div>
+              <div class="quote-badge ${badgeClass}">${badgeText}</div>
+            </div>
+            <div class="quote-final-price" style="color:var(--muted2);font-size:15px;">${priceDisplay}</div>
+          </div>
+          <div class="quote-unavailable-reason">${q.note}</div>
+          <div class="quote-meta-row" style="margin-top:8px;">
+            <span class="pill">${q.basis}</span>
+            <span class="pill">${q.coverage}</span>
+            ${q.warning ? '<span class="pill warn">⚠ ' + q.warning + '</span>' : ''}
+          </div>
+        </div>`;
+      return;
+    }
+
+    html += `
+      <div class="${cardClass}">
+        <div class="quote-header">
+          <div class="quote-carrier-row">
+            <div class="carrier-dot" style="background:${dotColor}"></div>
+            <div class="quote-carrier-name">${q.carrier}</div>
+            <div class="quote-badge ${badgeClass}">${badgeText}</div>
+          </div>
+          <div class="quote-final-price ${q.isRecommended ? 'best' : ''}">€ ${formatMoney(q.finalPrice)}</div>
+        </div>
+        <div class="quote-breakdown">
+          <div class="breakdown-item">
+            <div class="breakdown-label">Basisprijs</div>
+            <div class="breakdown-value">€ ${formatMoney(q.basePrice)}</div>
+          </div>
+          <div class="breakdown-item">
+            <div class="breakdown-label">Dieseltoeslag</div>
+            <div class="breakdown-value surcharge">${surchargeLabel}</div>
+          </div>
+          <div class="breakdown-item">
+            <div class="breakdown-label">Toeslag bedrag</div>
+            <div class="breakdown-value surcharge">€ ${formatMoney(q.surchargeAmount)}</div>
+          </div>
+          <div class="breakdown-item">
+            <div class="breakdown-label">Eindprijs excl. BTW</div>
+            <div class="breakdown-value">€ ${formatMoney(q.finalPrice)}</div>
+          </div>
+          <div class="breakdown-item">
+            <div class="breakdown-label">Betalend gewicht</div>
+            <div class="breakdown-value">${Math.ceil(q.chargeableWeight)} kg</div>
+          </div>
+          <div class="breakdown-item">
+            <div class="breakdown-label">Tariefregel</div>
+            <div class="breakdown-value">${q.tierLabel}</div>
+          </div>
+        </div>
+        ${suppressedNote}
+        <div class="quote-meta-row">
+          <span class="pill">${q.basis}</span>
+          <span class="pill">${q.coverage}</span>
+          ${q.warning ? '<span class="pill warn">⚠ ' + q.warning + '</span>' : ''}
+          ${kooiaapPill}
+          <span class="pill">${q.note}</span>
+        </div>
+        ${q.recommendationReason ? '<div style="font-size:12px;color:var(--green);margin-top:6px">✓ ' + q.recommendationReason + '</div>' : ''}
+      </div>`;
+  });
+
+  // Niet-beschikbare carriers altijd tonen
+  unavailable.forEach(c => {
+    const dotColor = CARRIER_COLORS[c.name] || 'var(--muted2)';
+    html += `
+      <div class="quote unavailable">
+        <div class="quote-header">
+          <div class="quote-carrier-row">
+            <div class="carrier-dot" style="background:${dotColor};opacity:0.4"></div>
+            <div class="quote-carrier-name" style="color:var(--muted)">${c.name}</div>
+            <div class="quote-badge badge-rank" style="opacity:0.5">Niet beschikbaar</div>
+          </div>
+          <div class="quote-final-price" style="color:var(--muted2);font-size:15px;">—</div>
+        </div>
+        <div class="quote-unavailable-reason">${c.reason}</div>
+        <div class="quote-meta-row" style="margin-top:8px;">
+          <span class="pill">Dekking: ${c.coverage}</span>
+        </div>
+      </div>`;
+  });
+
+  container.innerHTML = html;
+}
+
+/* ============================================================
+   SAMENVATTING TOP RESULT RENDEREN
+   ============================================================ */
+
+function renderSummary(recommended, cheapest, metrics, period, reco) {
+  // Primair tonen: aanbevolen carrier (kan afwijken van goedkoopste)
+  const best = recommended;
+
+  document.getElementById('res-carrier').textContent = best.carrier;
+  document.getElementById('res-country').textContent = COUNTRY_NAMES[best.country] || best.country;
+  document.getElementById('res-postcode').textContent = best.postcode;
+  document.getElementById('res-ldm').textContent = metrics.totalLdm.toFixed(2).replace('.', ',') + ' ldm';
+  document.getElementById('res-weight').textContent = Math.ceil(best.chargeableWeight) + ' kg';
+  document.getElementById('res-tier').textContent = best.tierLabel;
+  document.getElementById('res-surcharge').textContent = best.basePrice ? best.surchargeInfo.pct + '%' : '—';
+  document.getElementById('res-period').textContent = formatPeriodLabel(period);
+  document.getElementById('price-display').textContent = best.basePrice ? formatMoney(best.finalPrice) : 'Op aanvraag';
+
+  const address = document.getElementById('address').value.trim();
+  const titleBits = [];
+  if (address) titleBits.push(address);
+  titleBits.push(COUNTRY_NAMES[best.country] || best.country);
+  document.getElementById('price-sub').textContent = best.basePrice
+    ? titleBits.join(' · ') + ' · incl. dieseltoeslag ' + best.surchargeInfo.pct + '% (' + formatPeriodLabel(period) + ') · excl. BTW'
+    : 'Op aanvraag — neem contact op voor offerte';
+
+  // Dual badge: aanbevolen / goedkoopst
+  const badgeReco = document.getElementById('badge-recommended');
+  const badgeCheap = document.getElementById('badge-cheapest');
+  const isDiff = cheapest && recommended && cheapest.carrier !== recommended.carrier && cheapest.basePrice !== null;
+  badgeReco.style.display = 'inline-flex';
+  badgeCheap.style.display = isDiff ? 'inline-flex' : 'none';
+
+  // Carrier-note
+  let noteHtml = '<strong>' + best.carrier + '</strong> — ';
+  if (reco.businessRuleActive) {
+    noteHtml += '<span style="color:var(--orange);font-weight:600">⚡ ' + reco.businessRuleLabel + '</span>: ' + reco.recommendationReason;
+    if (isDiff) {
+      noteHtml += ' <br><span style="font-size:12px;color:var(--muted)">💡 Goedkoopste prijs: <strong>' + cheapest.carrier + '</strong> (€ ' + formatMoney(cheapest.finalPrice) + ') — maar niet de aanbevolen optie voor dit formaat.</span>';
+    }
+  } else {
+    noteHtml += reco.recommendationReason;
+    if (best.basePrice) {
+      noteHtml += ' Basisprijs: € ' + formatMoney(best.basePrice) + ' · Toeslag: € ' + formatMoney(best.surchargeAmount) + '.';
+    }
+  }
+  document.getElementById('carrier-note').innerHTML = noteHtml;
+
+  document.getElementById('method-note').innerHTML =
+    'Berekend met <strong>' + metrics.pallets + '</strong> pallet(s) van <strong>' +
+    metrics.length + ' × ' + metrics.width + ' × ' + metrics.height + ' cm</strong>. ' +
+    'Totale laadmeter: <strong>' + metrics.totalLdm.toFixed(2).replace('.', ',') + ' ldm</strong>. ' +
+    'Totale m³: <strong>' + metrics.totalM3.toFixed(2).replace('.', ',') + ' m³</strong>. ' +
+    'Interne kostprijs als ondergrens.';
+}
+
+/* ============================================================
+   VISUALISATIE – Canvas prijsvergelijking per gewicht
+   ============================================================ */
+
+/**
+ * Tekent een lijndiagram met eindprijzen per gewichtspunt per vervoerder.
+ * X-as = chargeable weight range, Y-as = eindprijs incl. dieseltoeslag.
+ */
+function renderVisualization(country, postcode, period) {
+  const section = document.getElementById('viz-section');
+  const canvas = document.getElementById('viz-canvas');
+  const subtitle = document.getElementById('viz-subtitle');
+
+  // Gewichtspunten om te simuleren
+  const weightPoints = [100, 200, 350, 500, 700, 875, 1000, 1400, 1750, 2100, 2625, 2800, 3500, 4000, 5000, 6000, 8000, 10000];
+
+  // Eén pallet, standaard afmetingen voor de simulatie
+  const simMetrics = (weight) => {
+    const pallets = 1;
+    const length = 120, width = 80, height = 180;
+    const ldmPerPallet = (length / 100) * (width / 100) / 2.4;
+    const totalLdm = ldmPerPallet * pallets;
+    const totalM3 = (length * width * height) / 1_000_000 * pallets;
+    return { pallets, weight, length, width, height, ldmPerPallet, totalLdm, totalM3 };
+  };
+
+  // Bereken quotes voor elk gewichtspunt
+  const carriers = ['KLG Europe', 'Steenbergen', 'E. van Wijk Logistics', 'Kuijf Logistics'];
+  const seriesData = {};
+  carriers.forEach(c => { seriesData[c] = []; });
+
+  for (const w of weightPoints) {
+    const m = simMetrics(w);
+    const bq = [
+      getKLGBaseQuote(country, postcode, m),
+      getSteenbergenBaseQuote(country, postcode, m),
+      getVanWijkBaseQuote(country, postcode, m),
+      getKuijfBaseQuote(country, postcode, m)
+    ];
+
+    bq.forEach(q => {
+      if (!q || q.basePrice === null) return;
+      const full = buildFullQuote(q, period);
+      seriesData[q.carrier].push({ x: w, y: full.finalPrice });
+    });
+  }
+
+  // Check of er data is
+  const hasAnyData = carriers.some(c => seriesData[c].length > 0);
+  if (!hasAnyData) {
+    section.style.display = 'none';
+    return;
+  }
+
+  section.style.display = 'block';
+
+  // Canvas dimensies
+  const dpr = window.devicePixelRatio || 1;
+  const rect = canvas.getBoundingClientRect();
+  const W = rect.width || 860;
+  const H = 260;
+  canvas.width = W * dpr;
+  canvas.height = H * dpr;
+  canvas.style.height = H + 'px';
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+
+  // Padding
+  const padL = 64, padR = 20, padT = 20, padB = 48;
+  const plotW = W - padL - padR;
+  const plotH = H - padT - padB;
+
+  // Y min/max
+  let allY = [];
+  carriers.forEach(c => seriesData[c].forEach(p => allY.push(p.y)));
+  const yMin = 0;
+  const yMax = Math.ceil(Math.max(...allY) * 1.1 / 50) * 50;
+
+  const xMin = weightPoints[0];
+  const xMax = weightPoints[weightPoints.length - 1];
+
+  function toX(w) { return padL + (w - xMin) / (xMax - xMin) * plotW; }
+  function toY(v) { return padT + plotH - (v - yMin) / (yMax - yMin) * plotH; }
+
+  // Achtergrand
+  ctx.fillStyle = '#f4f3ef';
+  ctx.fillRect(0, 0, W, H);
+
+  // Grid lijnen Y
+  ctx.strokeStyle = '#e0ddd6';
+  ctx.lineWidth = 1;
+  const ySteps = 5;
+  for (let i = 0; i <= ySteps; i++) {
+    const v = yMin + (yMax - yMin) * i / ySteps;
+    const y = toY(v);
+    ctx.beginPath();
+    ctx.moveTo(padL, y);
+    ctx.lineTo(padL + plotW, y);
+    ctx.stroke();
+    ctx.fillStyle = '#7a7870';
+    ctx.font = '11px DM Mono, monospace';
+    ctx.textAlign = 'right';
+    ctx.fillText('€' + Math.round(v), padL - 6, y + 4);
+  }
+
+  // X-as labels (selectief)
+  const xLabels = [350, 700, 1400, 2100, 3500, 5000, 8000];
+  ctx.fillStyle = '#7a7870';
+  ctx.font = '11px DM Mono, monospace';
+  ctx.textAlign = 'center';
+  xLabels.forEach(w => {
+    const x = toX(w);
+    ctx.beginPath();
+    ctx.moveTo(x, padT + plotH);
+    ctx.lineTo(x, padT + plotH + 4);
+    ctx.strokeStyle = '#c0bdb5';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    ctx.fillStyle = '#7a7870';
+    const label = w >= 1000 ? (w / 1000) + 't' : w + 'kg';
+    ctx.fillText(label, x, padT + plotH + 16);
+  });
+
+  // X-as label
+  ctx.fillStyle = '#a39f96';
+  ctx.font = '11px DM Sans, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('Betalend gewicht (simulatie 1 pallet 120×80×180cm)', padL + plotW / 2, H - 4);
+
+  // Lijnen per carrier
+  const colorMap = {
+    'KLG Europe': '#2f5fc8',
+    'Steenbergen': '#2e7d4f',
+    'E. van Wijk Logistics': '#c84b2f',
+    'Kuijf Logistics': '#7c3aed'
+  };
+
+  carriers.forEach(carrier => {
+    const pts = seriesData[carrier];
+    if (pts.length < 2) return;
+
+    const color = colorMap[carrier];
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2.5;
+    ctx.lineJoin = 'round';
+    ctx.beginPath();
+    pts.forEach((p, i) => {
+      const x = toX(p.x), y = toY(p.y);
+      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    });
+    ctx.stroke();
+
+    // Punten
+    pts.forEach(p => {
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.arc(toX(p.x), toY(p.y), 3.5, 0, Math.PI * 2);
+      ctx.fill();
+    });
+  });
+
+  // Hover tooltip via mousemove
+  canvas._seriesData = seriesData;
+  canvas._colorMap = colorMap;
+  canvas._toX = toX; canvas._toY = toY;
+  canvas._plotW = plotW; canvas._plotH = plotH;
+  canvas._padL = padL; canvas._padT = padT;
+  canvas._yMin = yMin; canvas._yMax = yMax;
+  canvas._xMin = xMin; canvas._xMax = xMax;
+
+  // Legend
+  const legend = document.getElementById('viz-legend');
+  legend.innerHTML = carriers
+    .filter(c => seriesData[c].length > 0)
+    .map(c => `<div class="legend-item"><div class="legend-dot" style="background:${colorMap[c]}"></div>${c}</div>`)
+    .join('');
+
+  subtitle.textContent = `Simulatie toont eindprijzen inclusief dieseltoeslag (${formatPeriodLabel(period)}) voor 1 standaard pallet (120×80×180cm) naar ${COUNTRY_NAMES[country] || country} — postcode ${postcode}xx. Werkelijke rekening gebruikt jouw invoer.`;
+
+  // Tooltip listener (vervang als al bestaand)
+  canvas.onmousemove = function(e) {
+    renderVizTooltip(e, canvas, ctx, W, H, dpr, padL, padR, padT, padB, plotW, plotH, weightPoints, seriesData, colorMap, toX, toY, yMin, yMax, xMin, xMax);
+  };
+  canvas.onmouseleave = function() {
+    // Herteken zonder tooltip
+    renderVisualization(country, postcode, period);
+  };
+}
+
+function renderVizTooltip(e, canvas, ctx, W, H, dpr, padL, padR, padT, padB, plotW, plotH, weightPoints, seriesData, colorMap, toX, toY, yMin, yMax, xMin, xMax) {
+  const rect = canvas.getBoundingClientRect();
+  const mx = e.clientX - rect.left;
+
+  // Vind dichtstbijzijnde gewichtspunt
+  let closest = null, minDx = Infinity;
+  weightPoints.forEach(w => {
+    const dx = Math.abs(toX(w) - mx);
+    if (dx < minDx) { minDx = dx; closest = w; }
+  });
+  if (minDx > 40 || !closest) return;
+
+  // Herteken canvas
+  const tmpCanvas = document.createElement('canvas');
+  tmpCanvas.width = canvas.width;
+  tmpCanvas.height = canvas.height;
+  // Gebruik de bestaande context om opnieuw te tekenen is te complex; gebruik een overlay lijn
+  const cx = toX(closest);
+
+  // Verticale lijn op hover punt
+  ctx.clearRect(padL, padT, plotW, plotH);
+  // Hertekenen via de hoofdfunctie zou recursie geven — simpele overlay strategie:
+  ctx.strokeStyle = 'rgba(0,0,0,0.12)';
+  ctx.lineWidth = 1;
+  ctx.setLineDash([4, 3]);
+  ctx.beginPath();
+  ctx.moveTo(cx, padT);
+  ctx.lineTo(cx, padT + plotH);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Tooltip inhoud
+  const lines = [`${closest >= 1000 ? (closest / 1000).toFixed(1) + ' ton' : closest + ' kg'} betalend gewicht`];
+  Object.keys(seriesData).forEach(carrier => {
+    const pt = seriesData[carrier].find(p => p.x === closest);
+    if (pt) lines.push(`${carrier}: € ${pt.y.toLocaleString('nl-NL', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`);
+  });
+
+  // Tooltip box
+  const tx = cx + 10;
+  const ty = padT + 10;
+  const lineH = 16;
+  const boxW = 220;
+  const boxH = lines.length * lineH + 14;
+
+  ctx.fillStyle = 'rgba(255,255,255,0.96)';
+  ctx.strokeStyle = '#e0ddd6';
+  ctx.lineWidth = 1;
+  const bx = tx + boxW > W - padR ? cx - boxW - 10 : tx;
+  ctx.beginPath();
+  ctx.roundRect(bx, ty, boxW, boxH, 6);
+  ctx.fill(); ctx.stroke();
+
+  ctx.font = '12px DM Sans, sans-serif';
+  lines.forEach((line, i) => {
+    ctx.fillStyle = i === 0 ? '#7a7870' : '#1a1916';
+    if (i > 0) {
+      const carrier = line.split(':')[0];
+      ctx.fillStyle = colorMap[carrier] || '#1a1916';
+    }
+    ctx.fillText(line, bx + 8, ty + 10 + i * lineH);
+  });
+}
+
+/* ============================================================
+   EUROPA SVG KAART
+   ============================================================
+   Vereenvoudigde maar herkenbare SVG-paden voor NL, BE, LU,
+   DE, AT, FR + omliggende landen als context (grijs).
+   Dekking per carrier bepaalt de kleur.
+   ============================================================ */
+
+// Landen met hun vervoerders
+
+// Vereenvoudigde SVG path data voor West-Europa
+// ViewBox: 0 0 680 520
+
+// Actief geselecteerd land op de kaart
+// Meest recente berekening (voor prijsweergave op kaart)
+
+/* ============================================================
+   HOOFD BEREKENINGSFUNCTIE
+   ============================================================ */
+
+/* ============================================================
+   BUSINESS RECOMMENDATION RULES
+   Gescheiden laag bovenop de prijslogica.
+   Prijs en aanbeveling kunnen verschillende carriers zijn.
+   ============================================================ */
+
+const NL_LONG_PALLET_THRESHOLD_CM  = 240;
+const NL_LONG_PALLET_HEAVY_KG      = 500;
+
+/**
+ * Decoreer een quote met business flags.
+ * isCheapest, isRecommended, isSuppressedByBusinessRule, recommendationReason, warningPills[]
+ */
+function decorateQuoteWithBusinessFlags(quote, allQuotes, country, metrics) {
+  const q = { ...quote, warningPills: [] };
+  const sorted = [...allQuotes].filter(x => x.basePrice !== null).sort((a, b) => a.finalPrice - b.finalPrice);
+  q.isCheapest = sorted.length > 0 && sorted[0].carrier === q.carrier;
+  q.isRecommended = false;
+  q.isSuppressedByBusinessRule = false;
+  q.recommendationReason = '';
+
+  // Kooiaap pill
+  if (q.kooiaapToeslag > 0) {
+    q.warningPills.push('Kooiaaptoeslag +EUR 150');
+  }
+
+  return q;
+}
+
+/**
+ * Bepaal de aanbevolen carrier op basis van business rules.
+ * Geeft { recommendedCarrier, cheapestCarrier, showKooiaapBanner, kooiaapOnRecommended }
+ */
+function getBusinessRecommendationContext(fullQuotes, country, metrics) {
+  const pricedQuotes = fullQuotes.filter(q => q.basePrice !== null).sort((a, b) => a.finalPrice - b.finalPrice);
+  const cheapest = pricedQuotes[0] || null;
+
+  // Regel F: NL + lange pallet
+  if (country === 'NL' && metrics.length >= NL_LONG_PALLET_THRESHOLD_CM) {
+    const isLight = metrics.weight < NL_LONG_PALLET_HEAVY_KG;
+    const preferredName = isLight ? 'E. van Wijk Logistics' : 'Kuijf Logistics';
+    const preferred = pricedQuotes.find(q => q.carrier === preferredName)
+      || fullQuotes.find(q => q.carrier === preferredName);
+
+    const showKooiaap = preferredName === 'E. van Wijk Logistics';
+
+    return {
+      recommendedCarrier: preferred?.carrier || cheapest?.carrier || null,
+      cheapestCarrier: cheapest?.carrier || null,
+      businessRuleActive: true,
+      businessRuleLabel: 'Lange pallet (>= 240 cm)',
+      suppressedCarrier: 'Steenbergen',
+      showKooiaapBanner: showKooiaap,
+      kooiaapNote: showKooiaap ? 'Let op kosten Kooiaap 150 euro' : null,
+      recommendationReason: isLight
+        ? 'Lange pallet < 500 kg: voorkeur E. van Wijk (geschikt voor lange goederen)'
+        : 'Lange pallet >= 500 kg: voorkeur Kuijf Logistics (geschikt voor zwaar lang product)'
+    };
+  }
+
+  // Regel G: Buitenland + pallet > 120 × 120 cm
+  if (country !== 'NL' && metrics.length > 120 && metrics.width > 120) {
+    const vanWijk = pricedQuotes.find(q => q.carrier === 'E. van Wijk Logistics')
+      || fullQuotes.find(q => q.carrier === 'E. van Wijk Logistics');
+    const klg = fullQuotes.find(q => q.carrier === 'KLG Europe');
+
+    // Markeer KLG als op aanvraag in deze context
+    if (klg) klg._overrideOnRequest = true;
+
+    return {
+      recommendedCarrier: vanWijk?.carrier || cheapest?.carrier || null,
+      cheapestCarrier: cheapest?.carrier || null,
+      businessRuleActive: true,
+      businessRuleLabel: 'Grote pallet buitenland (> 120x120 cm)',
+      suppressedCarrier: null,
+      showKooiaapBanner: false,
+      kooiaapNote: null,
+      recommendationReason: 'Pallet > 120×120 cm naar buitenland: voorkeur E. van Wijk. KLG: alleen op aanvraag in deze situatie.'
+    };
+  }
+
+  // Standaard: goedkoopste = aanbevolen
+  return {
+    recommendedCarrier: cheapest?.carrier || null,
+    cheapestCarrier: cheapest?.carrier || null,
+    businessRuleActive: false,
+    businessRuleLabel: null,
+    suppressedCarrier: null,
+    showKooiaapBanner: false,
+    kooiaapNote: null,
+    recommendationReason: 'Laagste eindprijs inclusief dieseltoeslag.'
+  };
+}
+
+/**
+ * Sorteer quotes met business rules.
+ * Aanbevolen staat altijd als eerste, daarna prijs-volgorde.
+ */
+function sortQuotesWithBusinessRules(fullQuotes, reco) {
+  return [...fullQuotes].sort((a, b) => {
+    // Aanbevolen altijd eerst
+    if (a.carrier === reco.recommendedCarrier && b.carrier !== reco.recommendedCarrier) return -1;
+    if (b.carrier === reco.recommendedCarrier && a.carrier !== reco.recommendedCarrier) return 1;
+    // On-request/manual achteraan
+    const aNA = a.basePrice === null, bNA = b.basePrice === null;
+    if (aNA && !bNA) return 1;
+    if (!aNA && bNA) return -1;
+    return (a.finalPrice || 999999) - (b.finalPrice || 999999);
+  });
+}
+
+function calculate() {
+  hideError();
+
+  const country = document.getElementById('country').value;
+  const postcodeRaw = document.getElementById('postcode').value;
+  const postcode = normalizePostcode(country, postcodeRaw);
+  const period = getSelectedPeriod();
+
+  if (!country) return showError('Selecteer een land van bestemming.');
+
+  // EU-fallback landen: postcode optioneel
+  const isFallback = isEuropeanFallbackCountry(country);
+  if (!isFallback && (!postcode || postcode.length < 2)) {
+    return showError('Voer een geldige postcode in voor het gekozen land.');
+  }
+
+  let metrics;
+  try { metrics = computeMetrics(); }
+  catch (err) { return showError(err.message); }
+
+  // Stap 1: verzamel alle base quotes
+  const rawBase = [
+    getKLGBaseQuote(country, postcode, metrics),
+    getSteenbergenBaseQuote(country, postcode, metrics),
+    getVanWijkBaseQuote(country, postcode, metrics),
+    getKuijfBaseQuote(country, postcode, metrics),
+    getFallbackEuropeanQuote(country, postcode, metrics)
+  ].filter(Boolean);
+
+  // Dedupliceer: als KLG al een echte quote heeft, geen fallback KLG toevoegen
+  const baseQuotes = rawBase.filter((q, idx, arr) => {
+    if (q.isOnRequest && arr.some(other => other.carrier === q.carrier && !other.isOnRequest)) return false;
+    return true;
+  });
+
+  if (!baseQuotes.length) {
+    return showError(
+      'Geen vervoerder gevonden voor ' + (COUNTRY_NAMES[country] || country) +
+      ' postcode ' + postcode + '. Controleer de invoer.'
+    );
+  }
+
+  // Stap 2: bouw fullQuotes (dieseltoeslag alleen toepassen op quotes met basePrice)
+  const fullQuotes = baseQuotes.map(bq => {
+    if (bq.basePrice === null) {
+      // On-request/manual: geen dieselberekening, maar wel object opbouwen
+      return {
+        ...bq,
+        surchargeInfo: { pct: 0, usedPeriod: period, isFallback: false },
+        surchargeAmount: 0,
+        finalPrice: null,
+        period
+      };
+    }
+    return buildFullQuote(bq, period);
+  });
+
+  // Stap 3: business recommendation context
+  const reco = getBusinessRecommendationContext(fullQuotes, country, metrics);
+
+  // Stap 4: sorteer met business rules
+  const sortedQuotes = sortQuotesWithBusinessRules(fullQuotes, reco);
+
+  // Stap 5: decoreer met flags
+  const decoratedQuotes = sortedQuotes.map(q => decorateQuoteWithBusinessFlags(q, sortedQuotes, country, metrics));
+
+  // Bepaal de 'aanbevolen' en 'goedkoopste' quotes
+  const recommendedQuote = decoratedQuotes.find(q => q.carrier === reco.recommendedCarrier) || decoratedQuotes[0];
+  const cheapestQuote = decoratedQuotes.filter(q => q.basePrice !== null).sort((a, b) => a.finalPrice - b.finalPrice)[0] || recommendedQuote;
+
+  // Markeer flags
+  decoratedQuotes.forEach(q => {
+    q.isRecommended = q.carrier === recommendedQuote.carrier;
+    q.isCheapest = q.carrier === cheapestQuote.carrier;
+    q.isSuppressedByBusinessRule = q.carrier === reco.suppressedCarrier;
+    if (q.carrier === reco.recommendedCarrier) q.recommendationReason = reco.recommendationReason;
+    if (reco.businessRuleActive && q.carrier === 'KLG Europe' && country !== 'NL' && metrics.length > 120 && metrics.width > 120) {
+      q._overrideOnRequest = true;
+    }
+  });
+
+  // Sla resultaat op voor kaart
+
+  // Render
+  renderSummary(recommendedQuote, cheapestQuote, metrics, period, reco);
+  renderQuotes(decoratedQuotes, reco);
+
+  document.getElementById('result').style.display = 'block';
+
+  // Kooiaap banner
+  const kooiaapBanner = document.getElementById('kooiaap-banner');
+  if (reco.showKooiaapBanner) {
+    kooiaapBanner.style.display = 'flex';
+  } else {
+    kooiaapBanner.style.display = 'none';
+  }
+
+  renderVisualization(country, postcode, period);
+
+  setTimeout(() => {
+    document.getElementById('result').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, 80);
+}
+
+/* ============================================================
+   HOE-SECTIE TOGGLE
+   ============================================================ */
+
+function toggleHowSection() {
+  const content = document.getElementById('how-content');
+  const chevron = document.getElementById('how-chevron');
+  const btn = document.getElementById('how-toggle-btn');
+  const isOpen = content.classList.contains('visible');
+  content.classList.toggle('visible', !isOpen);
+  chevron.classList.toggle('open', !isOpen);
+  btn.setAttribute('aria-expanded', String(!isOpen));
+}
+
+/* ============================================================
+   ADRES AUTOCOMPLETE MODULE
+   ============================================================
+   ➜ Hier koppel je later een echte API:
+      1. Vervang searchAddressSuggestions() met een echte API-call
+         (bijv. TomTom Search: https://api.tomtom.com/search/2/search/{query}.json?key=JOUW_KEY)
+      2. Pas applyAddressToFields() aan op basis van het responsformaat van jouw API.
+      3. Verwijder de MOCK_SUGGESTIONS constante en mock-notice.
+   ============================================================ */
+
+const MOCK_SUGGESTIONS = [
+  { main: 'Musterstraße 12', sub: '80331 München, Duitsland', country: 'DE', postcode: '80331' },
+  { main: 'Rue de la Paix 8', sub: '75001 Paris, Frankrijk', country: 'FR', postcode: '75001' },
+  { main: 'Koningin Astridplein 1', sub: '2018 Antwerpen, België', country: 'BE', postcode: '2018' },
+  { main: 'Nieuwezijds Voorburgwal 147', sub: '1012 RJ Amsterdam, Nederland', country: 'NL', postcode: '1012' },
+  { main: 'Graben 30', sub: '1010 Wien, Oostenrijk', country: 'AT', postcode: '1010' },
+  { main: 'Karolingerplatz 5', sub: '50679 Köln, Duitsland', country: 'DE', postcode: '50679' },
+  { main: 'Damrak 1', sub: '1012 Amsterdam, Nederland', country: 'NL', postcode: '1012' },
+  { main: 'Avenue Louise 54', sub: '1050 Brussel, België', country: 'BE', postcode: '1050' }
+];
+
+let suggestionIndex = -1;
+let suggestionsVisible = false;
+let hideTimeout = null;
+
+/**
+ * Zoekt adressuggesties voor een query.
+ * Vervang dit met een echte API-call voor productie.
+ * @param {string} query
+ * @returns {Promise<Array>}
+ */
+async function searchAddressSuggestions(query) {
+  // MOCK: filter op basis van query
+  if (!query || query.length < 3) return [];
+  const q = query.toLowerCase();
+  return MOCK_SUGGESTIONS.filter(s =>
+    s.main.toLowerCase().includes(q) || s.sub.toLowerCase().includes(q)
+  );
+}
+
+/**
+ * Verwerkt de geselecteerde suggestie en vult de velden in.
+ */
+function applyAddressToFields(item) {
+  document.getElementById('address').value = `${item.main}, ${item.sub}`;
+  if (item.country) {
+    document.getElementById('country').value = item.country;
+    onCountryChange();
+  }
+  if (item.postcode) {
+    document.getElementById('postcode').value = item.postcode;
+  }
+}
+
+function renderAddressSuggestions(results) {
+  const el = document.getElementById('address-suggestions');
+  if (!results.length) {
+    el.classList.remove('visible');
+    suggestionsVisible = false;
+    return;
+  }
+
+  el.innerHTML = results.map((r, i) => `
+    <div class="suggestion-item" data-idx="${i}" role="option"
+      onmousedown="selectSuggestion(${i})" tabindex="-1">
+      <div class="sug-icon">📍</div>
+      <div>
+        <div class="sug-main">${r.main}</div>
+        <div class="sug-sub">${r.sub}</div>
+      </div>
+    </div>
+  `).join('') + `<div class="suggestion-mock-notice">⚠ Dit zijn voorbeeldsuggesties (mock). Koppel een echte API voor productie.</div>`;
+
+  el._results = results;
+  el.classList.add('visible');
+  suggestionsVisible = true;
+  suggestionIndex = -1;
+}
+
+function selectSuggestion(idx) {
+  const el = document.getElementById('address-suggestions');
+  if (!el._results || !el._results[idx]) return;
+  applyAddressToFields(el._results[idx]);
+  el.classList.remove('visible');
+  suggestionsVisible = false;
+}
+
+async function onAddressInput(value) {
+  clearTimeout(hideTimeout);
+  const results = await searchAddressSuggestions(value);
+  renderAddressSuggestions(results);
+}
+
+function onAddressKeydown(e) {
+  const el = document.getElementById('address-suggestions');
+  const items = el.querySelectorAll('.suggestion-item');
+  if (!suggestionsVisible || !items.length) return;
+
+  if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    suggestionIndex = Math.min(suggestionIndex + 1, items.length - 1);
+    items.forEach((it, i) => it.classList.toggle('active', i === suggestionIndex));
+  } else if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    suggestionIndex = Math.max(suggestionIndex - 1, -1);
+    items.forEach((it, i) => it.classList.toggle('active', i === suggestionIndex));
+  } else if (e.key === 'Enter' && suggestionIndex >= 0) {
+    e.preventDefault();
+    selectSuggestion(suggestionIndex);
+  } else if (e.key === 'Escape') {
+    el.classList.remove('visible');
+    suggestionsVisible = false;
+  }
+}
+
+function hideSuggestionsDelayed() {
+  hideTimeout = setTimeout(() => {
+    document.getElementById('address-suggestions').classList.remove('visible');
+    suggestionsVisible = false;
+  }, 180);
+}
+
+/* ============================================================
+   INITIALISATIE
+   ============================================================ */
+
+initPeriodSelector();
+onCountryChange();
+
+</script>
+</body>
+</html>
