@@ -784,6 +784,30 @@ const FUEL_SURCHARGE_HISTORY = {
 };
 
 /* ============================================================
+   DIESELPRIJS (CBS) → GESCHATTE TOESLAG
+   ============================================================
+   Voor maanden zonder opgegeven toeslag schat de tool het percentage
+   op basis van de gemiddelde CBS-pompprijs voor diesel (incl. BTW, €/L),
+   bron: CBS StatLine tabel 81567NED.
+   Schatting = laatst bekende toeslag + DIESEL_SLOPE × (prijs maand − prijs die maand)
+   DIESEL_SLOPE (≈ 20 procentpunt per €/L) is afgeleid uit jan–apr 2026.
+   ➜ HIER voeg je nieuwe maandprijzen toe. Ontbreekt een maand, dan
+     wordt de laatst bekende dieselprijs gebruikt.
+   ============================================================ */
+const DIESEL_PRICE_CBS = {
+  '2026-01': 1.801,
+  '2026-02': 1.834,
+  '2026-03': 2.294,
+  '2026-04': 2.412,
+  '2026-05': 2.283,
+  '2026-06': 2.083,
+  '2026-07': 2.231,
+  '2026-08': 2.369,
+  '2026-09': 2.48
+};
+const DIESEL_SLOPE = 20;
+
+/* ============================================================
    OVERIGE CONSTANTEN
    ============================================================ */
 const COUNTRY_NAMES = {
@@ -837,39 +861,72 @@ const CARRIER_COLORS = {
    DIESELTOESLAG ENGINE
    ============================================================ */
 
+function currentPeriod() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+}
+
 /**
- * Geeft alle unieke perioden over alle vervoerders, gesorteerd.
+ * Geeft alle perioden vanaf de vroegste bekende maand t/m de huidige maand.
  */
 function getAllPeriods() {
   const set = new Set();
   for (const carrier of Object.values(FUEL_SURCHARGE_HISTORY)) {
     for (const period of Object.keys(carrier)) set.add(period);
   }
-  return Array.from(set).sort();
+  const known = Array.from(set).sort();
+  if (known.length === 0) return [];
+
+  const periods = [];
+  let [y, m] = known[0].split('-').map(Number);
+  const last = [known[known.length - 1], currentPeriod()].sort()[1];
+  while (true) {
+    const p = `${y}-${String(m).padStart(2, '0')}`;
+    if (p > last) break;
+    periods.push(p);
+    if (++m > 12) { m = 1; y++; }
+  }
+  return periods;
+}
+
+/**
+ * Dieselprijs voor een periode, of de laatst bekende prijs daarvoor.
+ */
+function getDieselPrice(period) {
+  const earlier = Object.keys(DIESEL_PRICE_CBS).sort().filter(p => p <= period);
+  return earlier.length ? DIESEL_PRICE_CBS[earlier[earlier.length - 1]] : undefined;
 }
 
 /**
  * Geeft het brandstoftoeslag-percentage voor een vervoerder en periode.
- * Als de exacte periode niet bestaat, gebruikt het de meest recente voorgaande.
- * @returns {{ pct: number, usedPeriod: string, isFallback: boolean }}
+ * Bestaat de exacte periode niet, dan wordt het geschat vanuit de meest recente
+ * voorgaande periode en de dieselprijsontwikkeling sindsdien.
+ * @returns {{ pct: number, usedPeriod: string, isFallback: boolean, isEstimate: boolean }}
  */
 function getFuelSurcharge(carrier, period) {
   const history = FUEL_SURCHARGE_HISTORY[carrier];
-  if (!history) return { pct: 0, usedPeriod: period, isFallback: false };
+  if (!history) return { pct: 0, usedPeriod: period, isFallback: false, isEstimate: false };
 
   if (history[period] !== undefined) {
-    return { pct: history[period], usedPeriod: period, isFallback: false };
+    return { pct: history[period], usedPeriod: period, isFallback: false, isEstimate: false };
   }
 
   // Zoek meest recente beschikbare voorgaande periode
   const available = Object.keys(history).sort();
   const earlier = available.filter(p => p < period);
   if (earlier.length > 0) {
-    const fallback = earlier[earlier.length - 1];
-    return { pct: history[fallback], usedPeriod: fallback, isFallback: true };
+    const base = earlier[earlier.length - 1];
+    const priceBase = getDieselPrice(base);
+    const priceNow = getDieselPrice(period);
+    if (priceBase !== undefined && priceNow !== undefined) {
+      const est = history[base] + DIESEL_SLOPE * (priceNow - priceBase);
+      const pct = Math.max(0, Math.round(est * 2) / 2);
+      return { pct, usedPeriod: base, isFallback: false, isEstimate: true };
+    }
+    return { pct: history[base], usedPeriod: base, isFallback: true, isEstimate: false };
   }
 
-  return { pct: 0, usedPeriod: period, isFallback: true };
+  return { pct: 0, usedPeriod: period, isFallback: true, isEstimate: false };
 }
 
 /**
@@ -900,13 +957,13 @@ function initPeriodSelector() {
   periods.forEach(p => {
     const opt = document.createElement('option');
     opt.value = p;
-    opt.textContent = formatPeriodLabel(p);
+    opt.textContent = formatPeriodLabel(p) + (isEstimatedPeriod(p) ? ' (schatting)' : '');
     select.appendChild(opt);
   });
 
-  // Selecteer standaard de meest recente periode
+  // Selecteer standaard de huidige maand (of de meest recente periode)
   if (periods.length > 0) {
-    select.value = periods[periods.length - 1];
+    select.value = periods.includes(currentPeriod()) ? currentPeriod() : periods[periods.length - 1];
   }
 
   onPeriodChange();
@@ -938,14 +995,8 @@ function onPeriodChange() {
     const prevPeriod = periods[idx - 1];
     // Gemiddelde toeslag voor vergelijking
     const carriers = Object.keys(FUEL_SURCHARGE_HISTORY);
-    const avgCurr = carriers.reduce((s, c) => {
-      const cur = FUEL_SURCHARGE_HISTORY[c][period];
-      return cur !== undefined ? s + cur : s;
-    }, 0) / carriers.length;
-    const avgPrev = carriers.reduce((s, c) => {
-      const pr = FUEL_SURCHARGE_HISTORY[c][prevPeriod];
-      return pr !== undefined ? s + pr : s;
-    }, 0) / carriers.length;
+    const avgCurr = carriers.reduce((s, c) => s + getFuelSurcharge(c, period).pct, 0) / carriers.length;
+    const avgPrev = carriers.reduce((s, c) => s + getFuelSurcharge(c, prevPeriod).pct, 0) / carriers.length;
 
     const diff = avgCurr - avgPrev;
     if (Math.abs(diff) < 0.5) {
@@ -963,7 +1014,13 @@ function onPeriodChange() {
     badge.textContent = 'Vroegste periode';
   }
 
-  note.textContent = `Dieseltoeslag ingesteld voor ${formatPeriodLabel(period)}`;
+  note.textContent = isEstimatedPeriod(period)
+    ? `Geschatte dieseltoeslag voor ${formatPeriodLabel(period)} (o.b.v. CBS-dieselprijs, ${getDieselPrice(period).toFixed(3).replace('.', ',')} €/L) — controleer bij vervoerder`
+    : `Dieseltoeslag ingesteld voor ${formatPeriodLabel(period)}`;
+}
+
+function isEstimatedPeriod(period) {
+  return Object.keys(FUEL_SURCHARGE_HISTORY).some(c => getFuelSurcharge(c, period).isEstimate);
 }
 
 /* ============================================================
@@ -1416,7 +1473,9 @@ function renderQuotes(decoratedQuotes, reco) {
     const surchargeLabel = hasPrice
       ? (q.surchargeInfo.isFallback
           ? q.surchargeInfo.pct + '% <span class="fallback-period-note">⚠ Fallback: ' + formatPeriodLabel(q.surchargeInfo.usedPeriod) + '</span>'
-          : q.surchargeInfo.pct + '%')
+          : q.surchargeInfo.isEstimate
+            ? q.surchargeInfo.pct + '% <span class="fallback-period-note">≈ Schatting o.b.v. dieselprijs</span>'
+            : q.surchargeInfo.pct + '%')
       : '—';
 
     // Kooiaap pill op quote niveau
@@ -1536,7 +1595,7 @@ function renderSummary(recommended, cheapest, metrics, period, reco) {
   document.getElementById('res-ldm').textContent = metrics.totalLdm.toFixed(2).replace('.', ',') + ' ldm';
   document.getElementById('res-weight').textContent = Math.ceil(best.chargeableWeight) + ' kg';
   document.getElementById('res-tier').textContent = best.tierLabel;
-  document.getElementById('res-surcharge').textContent = best.basePrice ? best.surchargeInfo.pct + '%' : '—';
+  document.getElementById('res-surcharge').textContent = best.basePrice ? (best.surchargeInfo.isEstimate ? '≈ ' : '') + best.surchargeInfo.pct + '%' : '—';
   document.getElementById('res-period').textContent = formatPeriodLabel(period);
   document.getElementById('price-display').textContent = best.basePrice ? formatMoney(best.finalPrice) : 'Op aanvraag';
 
@@ -1545,7 +1604,7 @@ function renderSummary(recommended, cheapest, metrics, period, reco) {
   if (address) titleBits.push(address);
   titleBits.push(COUNTRY_NAMES[best.country] || best.country);
   document.getElementById('price-sub').textContent = best.basePrice
-    ? titleBits.join(' · ') + ' · incl. dieseltoeslag ' + best.surchargeInfo.pct + '% (' + formatPeriodLabel(period) + ') · excl. BTW'
+    ? titleBits.join(' · ') + ' · incl. ' + (best.surchargeInfo.isEstimate ? 'geschatte ' : '') + 'dieseltoeslag ' + best.surchargeInfo.pct + '% (' + formatPeriodLabel(period) + ') · excl. BTW'
     : 'Op aanvraag — neem contact op voor offerte';
 
   // Dual badge: aanbevolen / goedkoopst
